@@ -28,11 +28,6 @@ var (
 		sync.RWMutex
 		m map[string]*Handler
 	}{m: map[string]*Handler{}}
-
-	// conns struct {
-	// 	sync.RWMutex
-	// 	n int
-	// }
 )
 
 func Connect(url string) {
@@ -57,11 +52,6 @@ func Connect(url string) {
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
-	// this connection is part of an ephemeral session—
-	// it will contribute to part of the connections that are
-	// broadcasted to with respect to a channel write done on
-	// the server's end
-
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
@@ -81,12 +71,12 @@ func get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handlers.RLock()
-	handlers.m[pattern].rbytes.RLock()
-	b = <-handlers.m[pattern].rbytes.sl[i]
-	handlers.m[pattern].rbytes.RUnlock()
+	handlers.m[pattern].wbytes.RLock()
+	handlers.m[pattern].wbytes.sl[i].w.Lock()
+	handlers.m[pattern].wbytes.sl[i].w.sl = append(handlers.m[pattern].wbytes.sl[i].w.sl, w)
+	handlers.m[pattern].wbytes.sl[i].w.Unlock()
+	handlers.m[pattern].wbytes.RUnlock()
 	handlers.RUnlock()
-
-	w.Write(b)
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
@@ -125,11 +115,19 @@ type Handler struct {
 
 	wbytes struct {
 		sync.RWMutex
-		sl []chan []byte
+		sl []wbyte
 	}
 	rbytes struct {
 		sync.RWMutex
 		sl []chan []byte
+	}
+}
+
+type wbyte struct {
+	c chan []byte
+	w struct {
+		sync.RWMutex
+		sl []http.ResponseWriter
 	}
 }
 
@@ -144,26 +142,50 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 
 	h.wbytes.Lock()
 	h.rbytes.Lock()
-	index := strconv.Itoa(len(h.wbytes.sl))
-	h.wbytes.sl = append(h.wbytes.sl, w)
+	i := len(h.wbytes.sl)
+	index := strconv.Itoa(i)
+	h.wbytes.sl = append(h.wbytes.sl, wbyte{c: w})
 	h.rbytes.sl = append(h.rbytes.sl, r)
 	h.wbytes.Unlock()
 	h.rbytes.Unlock()
 
+	client.RLock()
+	notServer := client.b
+	client.RUnlock()
+
+	// write
+	go func() {
+		if !notServer {
+			for b := range w {
+				h.wbytes.RLock()
+				h.wbytes.sl[i].w.Lock()
+				for _, wr := range h.wbytes.sl[i].w.sl {
+					wr.Write(b)
+				}
+				h.wbytes.sl[i].w.sl = []http.ResponseWriter{}
+				h.wbytes.sl[i].w.Unlock()
+				h.wbytes.RUnlock()
+			}
+		} else {
+			for b := range w {
+				s := h.pattern + Sep + index + Sep + string(b)
+				for {
+					_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
+					if err == nil {
+						break
+					}
+				}
+				jsutil.Alert("/post ! " + string(s))
+			}
+		}
+	}()
+
 	// read
 	go func() {
-		client.RLock()
-		if !client.b {
-			client.RUnlock()
+		if !notServer {
 			return
 		}
-		client.RUnlock()
-
 		for {
-			// if timeout then it should just retry; acts like something continually blocking
-			// if timeout then it should just retry; acts like something continually blocking
-			// if timeout then it should just retry; acts like something continually blocking
-			// (done?) (the 'continue'?)
 			s := h.pattern + Sep + index
 			resp, err := http.Post(address+"/get", "text/plain", strings.NewReader(s))
 			if err != nil {
@@ -176,27 +198,6 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 			}
 			jsutil.Alert("/get ! " + string(b))
 			r <- b
-		}
-	}()
-
-	// write
-	go func() {
-		client.RLock()
-		if !client.b {
-			client.RUnlock()
-			return
-		}
-		client.RUnlock()
-
-		for b := range w {
-			s := h.pattern + Sep + index + Sep + string(b)
-			for {
-				_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
-				if err == nil {
-					break
-				}
-			}
-			jsutil.Alert("/post ! " + string(s))
 		}
 	}()
 
