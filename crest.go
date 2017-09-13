@@ -149,25 +149,6 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 	h.wbytes.Unlock()
 	h.rbytes.Unlock()
 
-	// write
-	go func() {
-		client.RLock()
-		if !client.b {
-			client.RUnlock()
-			return
-		}
-		client.RUnlock()
-
-		for b := range w {
-			s := h.pattern + Sep + index + Sep + string(b)
-			_, err := http.Post(address+"/r", "text/plain", strings.NewReader(s))
-			if err != nil {
-				jsutil.Alert(err.Error())
-			}
-			jsutil.Alert("/w ! " + string(s))
-		}
-	}()
-
 	// read
 	go func() {
 		client.RLock()
@@ -179,7 +160,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 
 		for {
 			s := h.pattern + Sep + index
-			resp, err := http.Post(address+"/w", "text/html", strings.NewReader(s))
+			resp, err := http.Post(address+"/get", "text/plain", strings.NewReader(s))
 			if err != nil {
 				jsutil.Alert(err.Error())
 			}
@@ -188,8 +169,27 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 			if err != nil {
 				jsutil.Alert(err.Error())
 			}
-			jsutil.Alert("/r ! " + string(b))
+			jsutil.Alert("/get ! " + string(b))
 			r <- b
+		}
+	}()
+
+	// write
+	go func() {
+		client.RLock()
+		if !client.b {
+			client.RUnlock()
+			return
+		}
+		client.RUnlock()
+
+		for b := range w {
+			s := h.pattern + Sep + index + Sep + string(b)
+			_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
+			if err != nil {
+				jsutil.Alert(err.Error())
+			}
+			jsutil.Alert("/post ! " + string(s))
 		}
 	}()
 
