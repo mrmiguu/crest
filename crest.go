@@ -1,7 +1,6 @@
 package crest
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -35,8 +34,8 @@ func Connect(url string) {
 	address = url + Endpoint
 
 	mux := http.NewServeMux()
-	mux.HandleFunc(Endpoint+"/w", wserver)
-	mux.HandleFunc(Endpoint+"/r", rserver)
+	mux.HandleFunc(Endpoint+"/get", get)
+	mux.HandleFunc(Endpoint+"/post", post)
 
 	go func() {
 		defer func() {
@@ -52,16 +51,21 @@ func Connect(url string) {
 	}()
 }
 
-func wserver(w http.ResponseWriter, r *http.Request) {
+func get(w http.ResponseWriter, r *http.Request) {
+	// this connection is part of an ephemeral session—
+	// it will contribute to part of the connections that are
+	// broadcasted to with respect to a channel write done on
+	// the server's end
+
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("error; returning")
+		println("error; returning")
 		return
 	}
-	fmt.Println("/w", b)
+	println("/get", b)
 	select {}
 
 	parts := strings.Split(string(b), Sep)
@@ -69,7 +73,7 @@ func wserver(w http.ResponseWriter, r *http.Request) {
 	pattern, index := parts[0], parts[1]
 	i, err := strconv.Atoi(index)
 	if err != nil {
-		fmt.Println("error; returning")
+		println("error; returning")
 		return
 	}
 
@@ -82,16 +86,16 @@ func wserver(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
-func rserver(w http.ResponseWriter, r *http.Request) {
+func post(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("error; returning")
+		println("error; returning")
 		return
 	}
-	fmt.Println("/r", b)
+	println("/post", b)
 	select {}
 
 	parts := strings.Split(string(b), Sep)
@@ -99,7 +103,7 @@ func rserver(w http.ResponseWriter, r *http.Request) {
 	pattern, index, bytes := parts[0], parts[1], parts[2]
 	i, err := strconv.Atoi(index)
 	if err != nil {
-		fmt.Println("error; returning")
+		println("error; returning")
 		return
 	}
 
@@ -156,7 +160,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 
 		for b := range w {
 			s := h.pattern + Sep + index + Sep + string(b)
-			_, err := http.Post(address+"/r", "text/html", strings.NewReader(s))
+			_, err := http.Post(address+"/r", "text/plain", strings.NewReader(s))
 			if err != nil {
 				jsutil.Alert(err.Error())
 			}
