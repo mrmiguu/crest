@@ -28,6 +28,11 @@ var (
 		sync.RWMutex
 		m map[string]*Handler
 	}{m: map[string]*Handler{}}
+
+	// conns struct {
+	// 	sync.RWMutex
+	// 	n int
+	// }
 )
 
 func Connect(url string) {
@@ -65,8 +70,6 @@ func get(w http.ResponseWriter, r *http.Request) {
 		println("error; returning")
 		return
 	}
-	println("/get", b)
-	select {}
 
 	parts := strings.Split(string(b), Sep)
 
@@ -95,8 +98,6 @@ func post(w http.ResponseWriter, r *http.Request) {
 		println("error; returning")
 		return
 	}
-	println("/post", b)
-	select {}
 
 	parts := strings.Split(string(b), Sep)
 
@@ -159,10 +160,14 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 		client.RUnlock()
 
 		for {
+			// if timeout then it should just retry; acts like something continually blocking
+			// if timeout then it should just retry; acts like something continually blocking
+			// if timeout then it should just retry; acts like something continually blocking
+			// (done?) (the 'continue'?)
 			s := h.pattern + Sep + index
 			resp, err := http.Post(address+"/get", "text/plain", strings.NewReader(s))
 			if err != nil {
-				jsutil.Alert(err.Error())
+				continue
 			}
 			defer resp.Body.Close()
 			b, err := ioutil.ReadAll(resp.Body)
@@ -185,9 +190,11 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 
 		for b := range w {
 			s := h.pattern + Sep + index + Sep + string(b)
-			_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
-			if err != nil {
-				jsutil.Alert(err.Error())
+			for {
+				_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
+				if err == nil {
+					break
+				}
 			}
 			jsutil.Alert("/post ! " + string(s))
 		}
