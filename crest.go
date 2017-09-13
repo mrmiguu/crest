@@ -70,13 +70,17 @@ func get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cb := make(chan []byte)
+
 	handlers.RLock()
 	handlers.m[pattern].wbytes.RLock()
-	handlers.m[pattern].wbytes.sl[i].w.Lock()
-	handlers.m[pattern].wbytes.sl[i].w.sl = append(handlers.m[pattern].wbytes.sl[i].w.sl, w)
-	handlers.m[pattern].wbytes.sl[i].w.Unlock()
+	handlers.m[pattern].wbytes.sl[i].cb.Lock()
+	handlers.m[pattern].wbytes.sl[i].cb.sl = append(handlers.m[pattern].wbytes.sl[i].cb.sl, cb)
+	handlers.m[pattern].wbytes.sl[i].cb.Unlock()
 	handlers.m[pattern].wbytes.RUnlock()
 	handlers.RUnlock()
+
+	w.Write(<-cb)
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
@@ -124,10 +128,10 @@ type Handler struct {
 }
 
 type wbyte struct {
-	c chan []byte
-	w struct {
+	c  chan []byte
+	cb struct {
 		sync.RWMutex
-		sl []http.ResponseWriter
+		sl []chan []byte
 	}
 }
 
@@ -158,12 +162,12 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 		if !notServer {
 			for b := range w {
 				h.wbytes.RLock()
-				h.wbytes.sl[i].w.Lock()
-				for _, wr := range h.wbytes.sl[i].w.sl {
-					wr.Write(b)
+				h.wbytes.sl[i].cb.Lock()
+				for _, cb := range h.wbytes.sl[i].cb.sl {
+					cb <- b
 				}
-				h.wbytes.sl[i].w.sl = []http.ResponseWriter{}
-				h.wbytes.sl[i].w.Unlock()
+				h.wbytes.sl[i].cb.sl = []chan []byte{}
+				h.wbytes.sl[i].cb.Unlock()
 				h.wbytes.RUnlock()
 			}
 		} else {
