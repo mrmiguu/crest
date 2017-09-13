@@ -61,9 +61,10 @@ func wserver(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("error; returning")
 		return
 	}
+	fmt.Println("/w", b)
+	select {}
 
 	parts := strings.Split(string(b), Sep)
-	fmt.Println("/w", parts)
 
 	pattern, index := parts[0], parts[1]
 	i, err := strconv.Atoi(index)
@@ -90,8 +91,10 @@ func rserver(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("error; returning")
 		return
 	}
+	fmt.Println("/r", b)
+	select {}
+
 	parts := strings.Split(string(b), Sep)
-	fmt.Println("/r", parts)
 
 	pattern, index, bytes := parts[0], parts[1], parts[2]
 	i, err := strconv.Atoi(index)
