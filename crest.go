@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/mrmiguu/jsutil"
 )
 
 const (
@@ -40,8 +38,15 @@ func Connect(url string) {
 	go func() {
 		defer func() {
 			recover()
+
+			//
+			// THIS IS TRUE BEFORE IT'S LOCK-N-READ BY h.Bytes(); it's false even though it shouldn't be
+			// THIS IS TRUE BEFORE IT'S LOCK-N-READ BY h.Bytes(); it's false even though it shouldn't be
+			// THIS IS TRUE BEFORE IT'S LOCK-N-READ BY h.Bytes(); it's false even though it shouldn't be
+			//
 			client.Lock()
 			client.b = true
+			println(client.b)
 			client.Unlock()
 		}()
 		err := http.ListenAndServe(url, mux)
@@ -52,6 +57,7 @@ func Connect(url string) {
 }
 
 func get(w http.ResponseWriter, r *http.Request) {
+	println("/get")
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
@@ -84,6 +90,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
+	println("/post")
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
@@ -156,30 +163,37 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 	client.RLock()
 	notServer := client.b
 	client.RUnlock()
+	println("notServer=", notServer)
 
 	// write
 	go func() {
 		if !notServer {
+			println("for b := range w...")
 			for b := range w {
 				h.wbytes.RLock()
 				h.wbytes.sl[i].cb.Lock()
 				for _, cb := range h.wbytes.sl[i].cb.sl {
+					print("cb <- b... ")
 					cb <- b
+					println("!")
 				}
 				h.wbytes.sl[i].cb.sl = []chan []byte{}
 				h.wbytes.sl[i].cb.Unlock()
 				h.wbytes.RUnlock()
 			}
 		} else {
+			println("for b := range w...")
 			for b := range w {
+				println("b! read from writer ch")
 				s := h.pattern + Sep + index + Sep + string(b)
 				for {
+					println("http.Post:POST...")
 					_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
 					if err == nil {
 						break
 					}
 				}
-				jsutil.Alert("/post ! " + string(s))
+				println("/post ! " + string(s))
 			}
 		}
 	}()
@@ -191,6 +205,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 		}
 		for {
 			s := h.pattern + Sep + index
+			println("http.Post:GET...")
 			resp, err := http.Post(address+"/get", "text/plain", strings.NewReader(s))
 			if err != nil {
 				continue
@@ -198,9 +213,9 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 			defer resp.Body.Close()
 			b, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
-				jsutil.Alert(err.Error())
+				println(err.Error())
 			}
-			jsutil.Alert("/get ! " + string(b))
+			println("/get ! " + string(b))
 			r <- b
 		}
 	}()
