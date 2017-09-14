@@ -27,7 +27,7 @@ func rbytesf(h *Handler, t string) func() interface{} {
 			}
 		}
 
-		println("r()...")
+		// println("r()...")
 		s := h.pattern + V + t + V + index
 		var resp *http.Response
 		var err error
@@ -45,7 +45,7 @@ func rbytesf(h *Handler, t string) func() interface{} {
 			println(err.Error())
 		}
 		println("/get !")
-		println("r() !")
+		// println("r() !")
 
 		switch t {
 		case tint:

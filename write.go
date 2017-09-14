@@ -12,8 +12,8 @@ func wbytesf(h *Handler, t string) func(interface{}) {
 
 	return func(x interface{}) {
 		if !isClient {
-			println("w(?)...")
-			defer println("w(?) !")
+			// println("w(?)...")
+			// defer println("w(?) !")
 			h.wbytes.RLock()
 			h.wbytes.sl[i].Lock()
 			if len(h.wbytes.sl[i].sl) < 1 {
@@ -26,16 +26,16 @@ func wbytesf(h *Handler, t string) func(interface{}) {
 				h.wbytes.sl[i].Lock()
 			}
 			for _, cb := range h.wbytes.sl[i].sl {
-				println("cb <- ...")
+				// println("cb <- ...")
 				cb <- x
-				println("cb <- !")
+				// println("cb <- !")
 			}
 			h.wbytes.sl[i].sl = make([]chan interface{}, 0) // change 0 to 1??
 			h.wbytes.sl[i].Unlock()
 			h.wbytes.RUnlock()
 		} else {
-			println("w(?)...")
-			defer println("w(?) !")
+			// println("w(?)...")
+			// defer println("w(?) !")
 			var msg string
 			switch t {
 			case tint:
