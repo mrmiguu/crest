@@ -15,4 +15,6 @@ var (
 		sync.RWMutex
 		m map[string]*Handler
 	}{m: map[string]*Handler{}}
+
+	reboot = make(chan bool)
 )

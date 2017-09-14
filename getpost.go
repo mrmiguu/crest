@@ -8,13 +8,13 @@ import (
 )
 
 func get(w http.ResponseWriter, r *http.Request) {
-	println("/get")
+	println("/get...")
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		println("error; returning")
+		println("/get !", err.Error())
 		return
 	}
 
@@ -23,7 +23,7 @@ func get(w http.ResponseWriter, r *http.Request) {
 	pattern, index := parts[0], parts[1]
 	i, err := strconv.Atoi(index)
 	if err != nil {
-		println("error; returning")
+		println("/get !", err.Error())
 		return
 	}
 
@@ -32,22 +32,27 @@ func get(w http.ResponseWriter, r *http.Request) {
 	handlers.RLock()
 	handlers.m[pattern].wbytes.RLock()
 	handlers.m[pattern].wbytes.sl[i].cb.Lock()
+	if len(handlers.m[pattern].wbytes.sl[i].cb.sl) < 1 {
+		reboot <- true
+	}
 	handlers.m[pattern].wbytes.sl[i].cb.sl = append(handlers.m[pattern].wbytes.sl[i].cb.sl, cb)
 	handlers.m[pattern].wbytes.sl[i].cb.Unlock()
 	handlers.m[pattern].wbytes.RUnlock()
 	handlers.RUnlock()
 
 	w.Write(<-cb)
+
+	println("/get !")
 }
 
 func post(w http.ResponseWriter, r *http.Request) {
-	println("/post")
+	println("/post...")
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	defer r.Body.Close()
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		println("error; returning")
+		println("/post !", err.Error())
 		return
 	}
 
@@ -56,7 +61,7 @@ func post(w http.ResponseWriter, r *http.Request) {
 	pattern, index, bytes := parts[0], parts[1], parts[2]
 	i, err := strconv.Atoi(index)
 	if err != nil {
-		println("error; returning")
+		println("/post !", err.Error())
 		return
 	}
 
@@ -65,4 +70,6 @@ func post(w http.ResponseWriter, r *http.Request) {
 	handlers.m[pattern].rbytes.sl[i] <- []byte(bytes)
 	handlers.m[pattern].rbytes.RUnlock()
 	handlers.RUnlock()
+
+	println("/post !")
 }
