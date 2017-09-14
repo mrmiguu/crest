@@ -4,104 +4,29 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 )
 
-const (
-	Endpoint = "" //"/83c66fb4ee98eddef7cba94d787e4dc135e70a95"
-	Sep      = "▼"
-)
-
-var (
-	isClientExpr = regexp.MustCompile(`^[Hh][Tt][Tt][Pp][Ss]{0,1}:`)
-	isClient     bool
-
-	address string
-
-	handlers = struct {
-		sync.RWMutex
-		m map[string]*Handler
-	}{m: map[string]*Handler{}}
-)
-
+// Connect prepares communication with the specified URL.
 func Connect(url string) {
-	isClient = isClientExpr.MatchString(url)
+	if strings.LastIndex(url, "/")+1 == len(url) {
+		url = url[:len(url)-1]
+	}
 	address = url + Endpoint
 
+	isClient = isClientExpr.MatchString(url)
 	if isClient {
 		return
 	}
 
 	http.HandleFunc(Endpoint+"/get", get)
 	http.HandleFunc(Endpoint+"/post", post)
-	go func() {
-		log.Fatal(http.ListenAndServe(url, nil))
-	}()
+	go log.Fatal(http.ListenAndServe(url, nil))
 }
 
-func get(w http.ResponseWriter, r *http.Request) {
-	println("/get")
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-
-	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		println("error; returning")
-		return
-	}
-
-	parts := strings.Split(string(b), Sep)
-
-	pattern, index := parts[0], parts[1]
-	i, err := strconv.Atoi(index)
-	if err != nil {
-		println("error; returning")
-		return
-	}
-
-	cb := make(chan []byte)
-
-	handlers.RLock()
-	handlers.m[pattern].wbytes.RLock()
-	handlers.m[pattern].wbytes.sl[i].cb.Lock()
-	handlers.m[pattern].wbytes.sl[i].cb.sl = append(handlers.m[pattern].wbytes.sl[i].cb.sl, cb)
-	handlers.m[pattern].wbytes.sl[i].cb.Unlock()
-	handlers.m[pattern].wbytes.RUnlock()
-	handlers.RUnlock()
-
-	w.Write(<-cb)
-}
-
-func post(w http.ResponseWriter, r *http.Request) {
-	println("/post")
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-
-	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		println("error; returning")
-		return
-	}
-
-	parts := strings.Split(string(b), Sep)
-
-	pattern, index, bytes := parts[0], parts[1], parts[2]
-	i, err := strconv.Atoi(index)
-	if err != nil {
-		println("error; returning")
-		return
-	}
-
-	handlers.RLock()
-	handlers.m[pattern].rbytes.RLock()
-	handlers.m[pattern].rbytes.sl[i] <- []byte(bytes)
-	handlers.m[pattern].rbytes.RUnlock()
-	handlers.RUnlock()
-}
-
+// New creates a new pattern-specific handler for creating REST channels.
 func New(pattern string) *Handler {
 	h := &Handler{pattern: pattern}
 	handlers.Lock()
@@ -110,6 +35,7 @@ func New(pattern string) *Handler {
 	return h
 }
 
+// Handler holds pattern-specific read/write channels.
 type Handler struct {
 	pattern string
 
@@ -131,6 +57,7 @@ type wbyte struct {
 	}
 }
 
+// Bytes creates a byte slice channel split into write-only and read-only parts.
 func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 	n := 0
 	if len(buf) > 0 {
@@ -148,8 +75,6 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 	h.rbytes.sl = append(h.rbytes.sl, r)
 	h.wbytes.Unlock()
 	h.rbytes.Unlock()
-
-	println("isClient=", isClient)
 
 	// write
 	go func() {
@@ -171,7 +96,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 			println("for b := range w...")
 			for b := range w {
 				println("b! read from writer ch")
-				s := h.pattern + Sep + index + Sep + string(b)
+				s := h.pattern + V + index + V + string(b)
 				for {
 					println("http.Post:POST...")
 					_, err := http.Post(address+"/post", "text/plain", strings.NewReader(s))
@@ -191,7 +116,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 			return
 		}
 		for {
-			s := h.pattern + Sep + index
+			s := h.pattern + V + index
 			println("http.Post:GET...")
 			resp, err := http.Post(address+"/get", "text/plain", strings.NewReader(s))
 			if err != nil {
