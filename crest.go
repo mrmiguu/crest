@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,12 +16,10 @@ const (
 )
 
 var (
-	address string
+	isClientExpr = regexp.MustCompile(`^[Hh][Tt][Tt][Pp][Ss]{0,1}:`)
+	isClient     bool
 
-	client struct {
-		sync.RWMutex
-		b bool
-	}
+	address string
 
 	handlers = struct {
 		sync.RWMutex
@@ -29,30 +28,17 @@ var (
 )
 
 func Connect(url string) {
+	isClient = isClientExpr.MatchString(url)
 	address = url + Endpoint
 
-	mux := http.NewServeMux()
-	mux.HandleFunc(Endpoint+"/get", get)
-	mux.HandleFunc(Endpoint+"/post", post)
+	if isClient {
+		return
+	}
 
+	http.HandleFunc(Endpoint+"/get", get)
+	http.HandleFunc(Endpoint+"/post", post)
 	go func() {
-		defer func() {
-			recover()
-
-			//
-			// THIS IS TRUE BEFORE IT'S LOCK-N-READ BY h.Bytes(); it's false even though it shouldn't be
-			// THIS IS TRUE BEFORE IT'S LOCK-N-READ BY h.Bytes(); it's false even though it shouldn't be
-			// THIS IS TRUE BEFORE IT'S LOCK-N-READ BY h.Bytes(); it's false even though it shouldn't be
-			//
-			client.Lock()
-			client.b = true
-			println(client.b)
-			client.Unlock()
-		}()
-		err := http.ListenAndServe(url, mux)
-		if err != nil {
-			log.Fatal(err)
-		}
+		log.Fatal(http.ListenAndServe(url, nil))
 	}()
 }
 
@@ -118,6 +104,9 @@ func post(w http.ResponseWriter, r *http.Request) {
 
 func New(pattern string) *Handler {
 	h := &Handler{pattern: pattern}
+	handlers.Lock()
+	handlers.m[pattern] = h
+	handlers.Unlock()
 	return h
 }
 
@@ -160,14 +149,11 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 	h.wbytes.Unlock()
 	h.rbytes.Unlock()
 
-	client.RLock()
-	notServer := client.b
-	client.RUnlock()
-	println("notServer=", notServer)
+	println("isClient=", isClient)
 
 	// write
 	go func() {
-		if !notServer {
+		if !isClient {
 			println("for b := range w...")
 			for b := range w {
 				h.wbytes.RLock()
@@ -192,6 +178,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 					if err == nil {
 						break
 					}
+					print("RESTARTING ! ")
 				}
 				println("/post ! " + string(s))
 			}
@@ -200,7 +187,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 
 	// read
 	go func() {
-		if !notServer {
+		if !isClient {
 			return
 		}
 		for {
@@ -208,6 +195,7 @@ func (h *Handler) Bytes(buf ...int) (chan<- []byte, <-chan []byte) {
 			println("http.Post:GET...")
 			resp, err := http.Post(address+"/get", "text/plain", strings.NewReader(s))
 			if err != nil {
+				print("RESTARTING ! ")
 				continue
 			}
 			defer resp.Body.Close()
