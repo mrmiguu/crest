@@ -8,17 +8,19 @@ import (
 )
 
 func newServer(addr string) endpoint {
-	s := &server{map[string]*Handler{}}
+	s := &server{safeh{m: map[string]*Handler{}}}
 	go s.run(addr)
 	return s
 }
 
 func (s *server) New(pattern string) *Handler {
-	if _, exists := s.h[pattern]; exists {
+	s.h.Lock()
+	defer s.h.Unlock()
+	if _, exists := s.h.m[pattern]; exists {
 		panic("pattern already exists")
 	}
-	h := &Handler{hptr: &s.h, pattern: pattern}
-	s.h[pattern] = h
+	h := &Handler{hptr: &s.h.m, pattern: pattern}
+	s.h.m[pattern] = h
 	return h
 }
 
@@ -31,13 +33,22 @@ func (s *server) run(addr string) {
 		}
 		parts := bytes.Split(b, v)
 		pattern, t, idx, msg := string(parts[0]), parts[1][0], int(binary.BigEndian.Uint64(parts[2])), parts[3]
+		s.h.RLock()
+		defer s.h.RUnlock()
+		h := s.h.m[pattern]
 		switch t {
 		case tbytes:
-			s.h[pattern].postBytes[idx] <- msg
+			h.postBytes.RLock()
+			h.postBytes.sl[idx] <- msg
+			h.postBytes.RUnlock()
 		case tstring:
-			s.h[pattern].postString[idx] <- string(msg)
+			h.postString.RLock()
+			h.postString.sl[idx] <- string(msg)
+			h.postString.RUnlock()
 		case tint:
-			s.h[pattern].postInt[idx] <- int(binary.BigEndian.Uint64(msg))
+			h.postInt.RLock()
+			h.postInt.sl[idx] <- int(binary.BigEndian.Uint64(msg))
+			h.postInt.RUnlock()
 		}
 	})
 
@@ -49,14 +60,23 @@ func (s *server) run(addr string) {
 		}
 		parts := bytes.Split(b, v)
 		pattern, t, idx := string(parts[0]), parts[1][0], int(binary.BigEndian.Uint64(parts[2]))
+		s.h.RLock()
+		defer s.h.RUnlock()
+		h := s.h.m[pattern]
 		switch t {
 		case tbytes:
-			b = <-s.h[pattern].getBytes[idx]
+			h.getBytes.RLock()
+			b = <-h.getBytes.sl[idx]
+			h.getBytes.RUnlock()
 		case tstring:
-			b = []byte(<-s.h[pattern].getString[idx])
+			h.getString.RLock()
+			b = []byte(<-h.getString.sl[idx])
+			h.getString.RUnlock()
 		case tint:
 			b = make([]byte, 8)
-			binary.BigEndian.PutUint64(b, uint64(<-s.h[pattern].getInt[idx]))
+			h.getInt.RLock()
+			binary.BigEndian.PutUint64(b, uint64(<-h.getInt.sl[idx]))
+			h.getInt.RUnlock()
 		}
 		w.Write(b)
 	})
@@ -65,28 +85,67 @@ func (s *server) run(addr string) {
 }
 
 func (s *server) Bytes(pattern string) (func([]byte), func() []byte) {
-	idx := len(s.h[pattern].getBytes)
-	s.h[pattern].getBytes = append(s.h[pattern].getBytes, make(chan []byte))
-	s.h[pattern].postBytes = append(s.h[pattern].postBytes, make(chan []byte))
-	w := func(b []byte) { s.h[pattern].getBytes[idx] <- b }
-	r := func() []byte { return <-s.h[pattern].postBytes[idx] }
+	s.h.RLock()
+	h := s.h.m[pattern]
+	h.getBytes.Lock()
+	h.postBytes.Lock()
+	defer s.h.RUnlock()
+	defer h.getBytes.Unlock()
+	defer h.postBytes.Unlock()
+
+	idx := len(h.getBytes.sl)
+	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte))
+	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte))
+	getBytes, postBytes := h.getBytes.sl[idx], h.postBytes.sl[idx]
+	w := func(b []byte) {
+		getBytes <- b
+	}
+	r := func() []byte {
+		return <-postBytes
+	}
 	return w, r
 }
 
 func (s *server) String(pattern string) (func(string), func() string) {
-	idx := len(s.h[pattern].getString)
-	s.h[pattern].getString = append(s.h[pattern].getString, make(chan string))
-	s.h[pattern].postString = append(s.h[pattern].postString, make(chan string))
-	w := func(x string) { s.h[pattern].getString[idx] <- x }
-	r := func() string { return <-s.h[pattern].postString[idx] }
+	s.h.RLock()
+	h := s.h.m[pattern]
+	h.getString.Lock()
+	h.postString.Lock()
+	defer s.h.RUnlock()
+	defer h.getString.Unlock()
+	defer h.postString.Unlock()
+
+	idx := len(h.getString.sl)
+	h.getString.sl = append(h.getString.sl, make(chan string))
+	h.postString.sl = append(h.postString.sl, make(chan string))
+	getString, postString := h.getString.sl[idx], h.postString.sl[idx]
+	w := func(x string) {
+		getString <- x
+	}
+	r := func() string {
+		return <-postString
+	}
 	return w, r
 }
 
 func (s *server) Int(pattern string) (func(int), func() int) {
-	idx := len(s.h[pattern].getInt)
-	s.h[pattern].getInt = append(s.h[pattern].getInt, make(chan int))
-	s.h[pattern].postInt = append(s.h[pattern].postInt, make(chan int))
-	w := func(i int) { s.h[pattern].getInt[idx] <- i }
-	r := func() int { return <-s.h[pattern].postInt[idx] }
+	s.h.RLock()
+	h := s.h.m[pattern]
+	h.getInt.Lock()
+	h.postInt.Lock()
+	defer s.h.RUnlock()
+	defer h.getInt.Unlock()
+	defer h.postInt.Unlock()
+
+	idx := len(h.getInt.sl)
+	h.getInt.sl = append(h.getInt.sl, make(chan int))
+	h.postInt.sl = append(h.postInt.sl, make(chan int))
+	getInt, postInt := h.getInt.sl[idx], h.postInt.sl[idx]
+	w := func(i int) {
+		getInt <- i
+	}
+	r := func() int {
+		return <-postInt
+	}
 	return w, r
 }

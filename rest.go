@@ -11,6 +11,9 @@ func Connect(addr string) {
 
 // New creates a handler for REST channel building.
 func New(pattern string) *Handler {
+	if endpt == nil {
+		panic("must connect first")
+	}
 	return endpt.New(pattern)
 }
 
