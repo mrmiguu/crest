@@ -21,11 +21,8 @@ type client struct {
 
 // Handler holds pattern-relative typed channels.
 type Handler struct {
-	pattern    string
-	getBytes   []chan []byte
-	postBytes  []chan []byte
-	getString  []chan string
-	postString []chan string
-	getInt     []chan int
-	postInt    []chan int
+	pattern               string
+	getBytes, postBytes   []chan []byte
+	getString, postString []chan string
+	getInt, postInt       []chan int
 }
