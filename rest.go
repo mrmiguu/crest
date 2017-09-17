@@ -16,7 +16,7 @@ func New(pattern string) *Handler {
 
 // Close closes the handler and releases all of its REST channels.
 func (h *Handler) Close() error {
-	delete(*h.h, h.pattern)
+	delete(*h.hptr, h.pattern)
 	return nil
 }
 

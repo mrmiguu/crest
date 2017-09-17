@@ -18,7 +18,7 @@ type client struct {
 
 // Handler holds pattern-relative typed channels.
 type Handler struct {
-	h                     *map[string]*Handler
+	hptr                  *map[string]*Handler
 	pattern               string
 	getBytes, postBytes   []chan []byte
 	getString, postString []chan string

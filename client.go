@@ -19,7 +19,7 @@ func (c *client) New(pattern string) *Handler {
 	if _, exists := c.h[pattern]; exists {
 		panic("pattern already exists")
 	}
-	h := &Handler{h: &c.h, pattern: pattern}
+	h := &Handler{hptr: &c.h, pattern: pattern}
 	c.h[pattern] = h
 	return h
 }
