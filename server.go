@@ -27,14 +27,14 @@ func (s *server) run(addr string) {
 			panic(err)
 		}
 		parts := bytes.Split(b, v)
-		pattern, t, msg := string(parts[0]), parts[1][0], parts[2]
+		pattern, t, idx, msg := string(parts[0]), parts[1][0], int(binary.BigEndian.Uint64(parts[2])), parts[3]
 		switch t {
 		case tbytes:
-			s.h[pattern].postBytes <- msg
+			s.h[pattern].postBytes[idx] <- msg
 		case tstring:
-			s.h[pattern].postString <- string(msg)
+			s.h[pattern].postString[idx] <- string(msg)
 		case tint:
-			s.h[pattern].postInt <- int(binary.BigEndian.Uint64(msg))
+			s.h[pattern].postInt[idx] <- int(binary.BigEndian.Uint64(msg))
 		}
 	})
 
@@ -45,15 +45,15 @@ func (s *server) run(addr string) {
 			panic(err)
 		}
 		parts := bytes.Split(b, v)
-		pattern, t := string(parts[0]), parts[1][0]
+		pattern, t, idx := string(parts[0]), parts[1][0], int(binary.BigEndian.Uint64(parts[2]))
 		switch t {
 		case tbytes:
-			b = <-s.h[pattern].getBytes
+			b = <-s.h[pattern].getBytes[idx]
 		case tstring:
-			b = []byte(<-s.h[pattern].getString)
+			b = []byte(<-s.h[pattern].getString[idx])
 		case tint:
 			b = make([]byte, 8)
-			binary.BigEndian.PutUint64(b, uint64(<-s.h[pattern].getInt))
+			binary.BigEndian.PutUint64(b, uint64(<-s.h[pattern].getInt[idx]))
 		}
 		w.Write(b)
 	})
@@ -61,29 +61,29 @@ func (s *server) run(addr string) {
 	http.ListenAndServe(addr, nil)
 }
 
-// Bytes creates a byte slice REST channel.
 func (s *server) Bytes(pattern string) (func([]byte), func() []byte) {
-	s.h[pattern].getBytes = make(chan []byte)
-	s.h[pattern].postBytes = make(chan []byte)
-	w := func(b []byte) { s.h[pattern].getBytes <- b }
-	r := func() []byte { return <-s.h[pattern].postBytes }
+	idx := len(s.h[pattern].getBytes)
+	s.h[pattern].getBytes = append(s.h[pattern].getBytes, make(chan []byte))
+	s.h[pattern].postBytes = append(s.h[pattern].postBytes, make(chan []byte))
+	w := func(b []byte) { s.h[pattern].getBytes[idx] <- b }
+	r := func() []byte { return <-s.h[pattern].postBytes[idx] }
 	return w, r
 }
 
-// String creates a string REST channel.
 func (s *server) String(pattern string) (func(string), func() string) {
-	s.h[pattern].getString = make(chan string)
-	s.h[pattern].postString = make(chan string)
-	w := func(x string) { s.h[pattern].getString <- x }
-	r := func() string { return <-s.h[pattern].postString }
+	idx := len(s.h[pattern].getString)
+	s.h[pattern].getString = append(s.h[pattern].getString, make(chan string))
+	s.h[pattern].postString = append(s.h[pattern].postString, make(chan string))
+	w := func(x string) { s.h[pattern].getString[idx] <- x }
+	r := func() string { return <-s.h[pattern].postString[idx] }
 	return w, r
 }
 
-// Int creates an int REST channel.
 func (s *server) Int(pattern string) (func(int), func() int) {
-	s.h[pattern].getInt = make(chan int)
-	s.h[pattern].postInt = make(chan int)
-	w := func(i int) { s.h[pattern].getInt <- i }
-	r := func() int { return <-s.h[pattern].postInt }
+	idx := len(s.h[pattern].getInt)
+	s.h[pattern].getInt = append(s.h[pattern].getInt, make(chan int))
+	s.h[pattern].postInt = append(s.h[pattern].postInt, make(chan int))
+	w := func(i int) { s.h[pattern].getInt[idx] <- i }
+	r := func() int { return <-s.h[pattern].postInt[idx] }
 	return w, r
 }

@@ -12,7 +12,7 @@ func newClient(addr string) endpoint {
 	if i := strings.LastIndex(addr, "/"); i+1 == len(addr) {
 		addr = addr[:i]
 	}
-	return &client{map[string]*Handler{}, addr}
+	return &client{h: map[string]*Handler{}, addr: addr}
 }
 
 func (c *client) New(pattern string) *Handler {
@@ -24,16 +24,16 @@ func (c *client) New(pattern string) *Handler {
 	return h
 }
 
-func (c *client) write(pattern string, t byte, msg []byte) {
-	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, msg}, v)
+func (c *client) write(pattern string, t byte, idx []byte, msg []byte) {
+	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, idx, msg}, v)
 	_, err := http.Post(c.addr+"/post", "text/plain", bytes.NewReader(b))
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (c *client) read(pattern string, t byte) []byte {
-	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}}, v)
+func (c *client) read(pattern string, t byte, idx []byte) []byte {
+	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, idx}, v)
 	resp, err := http.Post(c.addr+"/get", "text/plain", bytes.NewReader(b))
 	if err != nil {
 		panic(err)
@@ -45,27 +45,33 @@ func (c *client) read(pattern string, t byte) []byte {
 	return b
 }
 
-// Bytes creates a byte slice REST channel.
 func (c *client) Bytes(pattern string) (func([]byte), func() []byte) {
-	w := func(b []byte) { c.write(pattern, tbytes, b) }
-	r := func() []byte { return c.read(pattern, tbytes) }
+	idx := make([]byte, 8)
+	binary.BigEndian.PutUint64(idx, uint64(c.bytesc))
+	c.bytesc++
+	w := func(b []byte) { c.write(pattern, tbytes, idx, b) }
+	r := func() []byte { return c.read(pattern, tbytes, idx) }
 	return w, r
 }
 
-// String creates a string REST channel.
 func (c *client) String(pattern string) (func(string), func() string) {
-	w := func(s string) { c.write(pattern, tstring, []byte(s)) }
-	r := func() string { return string(c.read(pattern, tstring)) }
+	idx := make([]byte, 8)
+	binary.BigEndian.PutUint64(idx, uint64(c.stringc))
+	c.stringc++
+	w := func(s string) { c.write(pattern, tstring, idx, []byte(s)) }
+	r := func() string { return string(c.read(pattern, tstring, idx)) }
 	return w, r
 }
 
-// Int creates an int REST channel.
 func (c *client) Int(pattern string) (func(int), func() int) {
+	idx := make([]byte, 8)
+	binary.BigEndian.PutUint64(idx, uint64(c.intc))
+	c.intc++
 	w := func(i int) {
 		b := make([]byte, 8)
 		binary.BigEndian.PutUint64(b, uint64(i))
-		c.write(pattern, tint, b)
+		c.write(pattern, tint, idx, b)
 	}
-	r := func() int { return int(binary.BigEndian.Uint64(c.read(pattern, tint))) }
+	r := func() int { return int(binary.BigEndian.Uint64(c.read(pattern, tint, idx))) }
 	return w, r
 }
