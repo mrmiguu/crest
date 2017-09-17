@@ -47,8 +47,8 @@ func (c *client) read(pattern string, t byte, idx []byte) []byte {
 
 func (c *client) Bytes(pattern string) (func([]byte), func() []byte) {
 	idx := make([]byte, 8)
-	binary.BigEndian.PutUint64(idx, uint64(c.bytesc))
-	c.bytesc++
+	binary.BigEndian.PutUint64(idx, uint64(len(c.h[pattern].getBytes)))
+	c.h[pattern].getBytes = append(c.h[pattern].getBytes, nil)
 	w := func(b []byte) { c.write(pattern, tbytes, idx, b) }
 	r := func() []byte { return c.read(pattern, tbytes, idx) }
 	return w, r
@@ -56,8 +56,8 @@ func (c *client) Bytes(pattern string) (func([]byte), func() []byte) {
 
 func (c *client) String(pattern string) (func(string), func() string) {
 	idx := make([]byte, 8)
-	binary.BigEndian.PutUint64(idx, uint64(c.stringc))
-	c.stringc++
+	binary.BigEndian.PutUint64(idx, uint64(len(c.h[pattern].getString)))
+	c.h[pattern].getString = append(c.h[pattern].getString, nil)
 	w := func(s string) { c.write(pattern, tstring, idx, []byte(s)) }
 	r := func() string { return string(c.read(pattern, tstring, idx)) }
 	return w, r
@@ -65,8 +65,8 @@ func (c *client) String(pattern string) (func(string), func() string) {
 
 func (c *client) Int(pattern string) (func(int), func() int) {
 	idx := make([]byte, 8)
-	binary.BigEndian.PutUint64(idx, uint64(c.intc))
-	c.intc++
+	binary.BigEndian.PutUint64(idx, uint64(len(c.h[pattern].getInt)))
+	c.h[pattern].getInt = append(c.h[pattern].getInt, nil)
 	w := func(i int) {
 		b := make([]byte, 8)
 		binary.BigEndian.PutUint64(b, uint64(i))

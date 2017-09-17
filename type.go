@@ -12,11 +12,8 @@ type server struct {
 }
 
 type client struct {
-	addr    string
-	h       map[string]*Handler
-	bytesc  int
-	stringc int
-	intc    int
+	addr string
+	h    map[string]*Handler
 }
 
 // Handler holds pattern-relative typed channels.
