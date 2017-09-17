@@ -16,10 +16,10 @@ func newClient(addr string) endpoint {
 }
 
 func (c *client) New(pattern string) *Handler {
-	h := &Handler{pattern: pattern}
 	if _, exists := c.h[pattern]; exists {
 		panic("pattern already exists")
 	}
+	h := &Handler{h: &c.h, pattern: pattern}
 	c.h[pattern] = h
 	return h
 }

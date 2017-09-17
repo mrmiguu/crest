@@ -14,6 +14,12 @@ func New(pattern string) *Handler {
 	return endpt.New(pattern)
 }
 
+// Close closes the handler and releases all of its REST channels.
+func (h *Handler) Close() error {
+	delete(*h.h, h.pattern)
+	return nil
+}
+
 // Bytes creates a byte slice REST channel.
 func (h *Handler) Bytes() (func([]byte), func() []byte) {
 	return endpt.Bytes(h.pattern)

@@ -14,7 +14,10 @@ func newServer(addr string) endpoint {
 }
 
 func (s *server) New(pattern string) *Handler {
-	h := &Handler{pattern: pattern}
+	if _, exists := s.h[pattern]; exists {
+		panic("pattern already exists")
+	}
+	h := &Handler{h: &s.h, pattern: pattern}
 	s.h[pattern] = h
 	return h
 }
