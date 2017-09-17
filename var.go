@@ -1,12 +1,14 @@
 package rest
 
+import (
+	"regexp"
+)
+
 var (
-	vlen int
-	e    endpoint
+	isServer = regexp.MustCompile(`:[0-9]+/`)
+	endpt    endpoint
+	v        = []byte(`▼`)
 )
 
 func init() {
-	vlen = len(v)
-	x := v[0]
-	println(x)
 }

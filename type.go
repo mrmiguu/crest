@@ -1,6 +1,7 @@
 package rest
 
 type endpoint interface {
+	New(string) *Handler
 	Bytes(string) (func([]byte), func() []byte)
 	String(string) (func(string), func() string)
 	Int(string) (func(int), func() int)
