@@ -8,6 +8,10 @@ func main() {
 	w, r := h.Int()
 	w(69)
 	println(r())
+	h2 := rest.New("logout")
+	ws, rs := h2.String()
+	println(rs())
+	ws("You got my '69' earlier")
 	select {}
 }
 
