@@ -27,22 +27,21 @@ func (c *client) New(pattern string) *Handler {
 }
 
 func (c *client) write(pattern string, t byte, idx int, msg []byte) {
-	i := make([]byte, 8)
-	binary.BigEndian.PutUint64(i, uint64(idx))
+	i := itob(idx)
 	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, i, msg}, v)
-	_, err := http.Post(c.addr+"/post", "text/plain", bytes.NewReader(b))
-	if err != nil {
-		panic(err)
+	var err error
+	for ok := true; ok; ok = (err != nil) {
+		_, err = http.Post(c.addr+"/post", "text/plain", bytes.NewReader(b))
 	}
 }
 
 func (c *client) read(pattern string, t byte, idx int) []byte {
-	i := make([]byte, 8)
-	binary.BigEndian.PutUint64(i, uint64(idx))
+	i := itob(idx)
 	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, i}, v)
-	resp, err := http.Post(c.addr+"/get", "text/plain", bytes.NewReader(b))
-	if err != nil {
-		panic(err)
+	var err error
+	var resp *http.Response
+	for ok := true; ok; ok = (err != nil) {
+		resp, err = http.Post(c.addr+"/get", "text/plain", bytes.NewReader(b))
 	}
 	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
