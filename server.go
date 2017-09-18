@@ -27,9 +27,7 @@ func (s *server) run(addr string) {
 	http.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
+		must(err)
 		parts := bytes.Split(b, v)
 		pattern, t, idx, msg := string(parts[0]), parts[1][0], btoi(parts[2]), parts[3]
 		s.h.RLock()
@@ -54,9 +52,7 @@ func (s *server) run(addr string) {
 	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
+		must(err)
 		parts := bytes.Split(b, v)
 		pattern, t, idx := string(parts[0]), parts[1][0], btoi(parts[2])
 		s.h.RLock()
@@ -95,12 +91,8 @@ func (s *server) Bytes(pattern string) (func([]byte), func() []byte) {
 	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte))
 	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte))
 	getBytes, postBytes := h.getBytes.sl[idx], h.postBytes.sl[idx]
-	w := func(b []byte) {
-		getBytes <- b
-	}
-	r := func() []byte {
-		return <-postBytes
-	}
+	w := func(b []byte) { getBytes <- b }
+	r := func() []byte { return <-postBytes }
 	return w, r
 }
 
@@ -117,12 +109,8 @@ func (s *server) String(pattern string) (func(string), func() string) {
 	h.getString.sl = append(h.getString.sl, make(chan string))
 	h.postString.sl = append(h.postString.sl, make(chan string))
 	getString, postString := h.getString.sl[idx], h.postString.sl[idx]
-	w := func(x string) {
-		getString <- x
-	}
-	r := func() string {
-		return <-postString
-	}
+	w := func(x string) { getString <- x }
+	r := func() string { return <-postString }
 	return w, r
 }
 
@@ -139,11 +127,7 @@ func (s *server) Int(pattern string) (func(int), func() int) {
 	h.getInt.sl = append(h.getInt.sl, make(chan int))
 	h.postInt.sl = append(h.postInt.sl, make(chan int))
 	getInt, postInt := h.getInt.sl[idx], h.postInt.sl[idx]
-	w := func(i int) {
-		getInt <- i
-	}
-	r := func() int {
-		return <-postInt
-	}
+	w := func(i int) { getInt <- i }
+	r := func() int { return <-postInt }
 	return w, r
 }

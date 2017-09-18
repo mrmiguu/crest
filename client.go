@@ -43,9 +43,7 @@ func (c *client) read(pattern string, t byte, idx int) []byte {
 		resp, err = http.Post(c.addr+"/get", "text/plain", bytes.NewReader(b))
 	}
 	b, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
+	must(err)
 	return b
 }
 
@@ -61,12 +59,8 @@ func (c *client) Bytes(pattern string) (func([]byte), func() []byte) {
 	idx := len(h.getBytes.sl)
 	h.getBytes.sl = append(h.getBytes.sl, nil)
 	h.postBytes.sl = append(h.postBytes.sl, nil)
-	w := func(b []byte) {
-		c.write(pattern, tbytes, idx, b)
-	}
-	r := func() []byte {
-		return c.read(pattern, tbytes, idx)
-	}
+	w := func(b []byte) { c.write(pattern, tbytes, idx, b) }
+	r := func() []byte { return c.read(pattern, tbytes, idx) }
 	return w, r
 }
 
@@ -82,12 +76,8 @@ func (c *client) String(pattern string) (func(string), func() string) {
 	idx := len(h.getString.sl)
 	h.getString.sl = append(h.getString.sl, nil)
 	h.postString.sl = append(h.postString.sl, nil)
-	w := func(s string) {
-		c.write(pattern, tstring, idx, []byte(s))
-	}
-	r := func() string {
-		return string(c.read(pattern, tstring, idx))
-	}
+	w := func(s string) { c.write(pattern, tstring, idx, []byte(s)) }
+	r := func() string { return string(c.read(pattern, tstring, idx)) }
 	return w, r
 }
 
@@ -103,11 +93,7 @@ func (c *client) Int(pattern string) (func(int), func() int) {
 	idx := len(h.getInt.sl)
 	h.getInt.sl = append(h.getInt.sl, nil)
 	h.postInt.sl = append(h.postInt.sl, nil)
-	w := func(i int) {
-		c.write(pattern, tint, idx, itob(i))
-	}
-	r := func() int {
-		return btoi(c.read(pattern, tint, idx))
-	}
+	w := func(i int) { c.write(pattern, tint, idx, itob(i)) }
+	r := func() int { return btoi(c.read(pattern, tint, idx)) }
 	return w, r
 }

@@ -9,6 +9,3 @@ var (
 	endpt    endpoint
 	v        = []byte(`▼`)
 )
-
-func init() {
-}
