@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/mrmiguu/rest"
 )
@@ -21,6 +22,8 @@ func main() {
 	h := rest.New("test")
 	w, r := h.Bytes()
 	var t test
+	println("r()...")
+	r()
 	err := json.Unmarshal(r(), &t)
 	if err != nil {
 		panic(err)
@@ -35,6 +38,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	println("w(b)... [3 sec]")
+	time.Sleep(3 * time.Second)
 	w(b)
 
 	select {}

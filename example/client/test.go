@@ -28,8 +28,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	println("w(b)...")
 	w(b)
 	var t2 test
+	println("r()...")
 	err = json.Unmarshal(r(), &t2)
 	if err != nil {
 		panic(err)
