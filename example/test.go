@@ -1,26 +1,43 @@
 package main
 
-import "github.com/mrmiguu/rest"
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/mrmiguu/rest"
+)
+
+type test struct {
+	this    string
+	is      []bool
+	working struct {
+		period float64
+	}
+}
 
 func main() {
 	rest.Connect("127.0.0.1:80")
-	h := rest.New("login")
-	w, r := h.Int(1)
-	time.Sleep(1 * time.Second)
-	println("w(420)...")
-	w(420)
-	time.Sleep(1 * time.Second)
-	println("r()...")
-	println(r())
-	h.Close()
-	h2 := rest.New("login")
-	ws, rs := h2.String()
-	time.Sleep(1 * time.Second)
-	println(`ws("You just got my '420'")...`)
-	ws("You just got my '420'")
-	time.Sleep(1 * time.Second)
-	println("rs()...")
-	println(rs())
+	h := rest.New("test")
+	w, r := h.Bytes()
+	var t test
+	rd := r()
+	fmt.Println(string(rd))
+	err := json.Unmarshal(rd, &t)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(t)
+	t2 := test{
+		this: strings.ToUpper(t.this),
+		is:   []bool{t.is[1], t.is[0]},
+	}
+	t2.working.period = t.working.period / 2
+	b, err := json.Marshal(t2)
+	if err != nil {
+		panic(err)
+	}
+	w(b)
+
 	select {}
 }

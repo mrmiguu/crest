@@ -60,8 +60,11 @@ func (c *client) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte, n))
 	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte, n))
 	w := func(b []byte) {
-		go func() { c.write(pattern, tbytes, idx, <-h.postBytes.sl[idx]) }()
-		h.postBytes.sl[idx] <- b
+		go func() {
+			c.write(pattern, tbytes, idx, b)
+			<-h.postBytes.sl[idx]
+		}()
+		h.postBytes.sl[idx] <- nil
 	}
 	r := func() []byte { return c.read(pattern, tbytes, idx) }
 	return w, r
@@ -80,8 +83,11 @@ func (c *client) String(pattern string, n int) (func(string), func() string) {
 	h.postString.sl = append(h.postString.sl, make(chan string, n))
 	h.getString.sl = append(h.getString.sl, make(chan string, n))
 	w := func(s string) {
-		go func() { c.write(pattern, tstring, idx, []byte(<-h.postString.sl[idx])) }()
-		h.postString.sl[idx] <- s
+		go func() {
+			c.write(pattern, tstring, idx, []byte(s))
+			<-h.postString.sl[idx]
+		}()
+		h.postString.sl[idx] <- ""
 	}
 	r := func() string { return string(c.read(pattern, tstring, idx)) }
 	return w, r
@@ -100,8 +106,11 @@ func (c *client) Int(pattern string, n int) (func(int), func() int) {
 	h.postInt.sl = append(h.postInt.sl, make(chan int, n))
 	h.getInt.sl = append(h.getInt.sl, make(chan int, n))
 	w := func(i int) {
-		go func() { c.write(pattern, tint, idx, itob(<-h.postInt.sl[idx])) }()
-		h.postInt.sl[idx] <- i
+		go func() {
+			c.write(pattern, tint, idx, itob(i))
+			<-h.postInt.sl[idx]
+		}()
+		h.postInt.sl[idx] <- 0
 	}
 	r := func() int { return btoi(c.read(pattern, tint, idx)) }
 	return w, r
