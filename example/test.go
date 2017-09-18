@@ -9,10 +9,10 @@ import (
 )
 
 type test struct {
-	this    string
-	is      []bool
-	working struct {
-		period float64
+	This    string
+	Is      []bool
+	Working struct {
+		Period float64
 	}
 }
 
@@ -21,18 +21,16 @@ func main() {
 	h := rest.New("test")
 	w, r := h.Bytes()
 	var t test
-	rd := r()
-	fmt.Println(string(rd))
-	err := json.Unmarshal(rd, &t)
+	err := json.Unmarshal(r(), &t)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(t)
 	t2 := test{
-		this: strings.ToUpper(t.this),
-		is:   []bool{t.is[1], t.is[0]},
+		This: strings.ToUpper(t.This),
+		Is:   []bool{t.Is[1], t.Is[0]},
 	}
-	t2.working.period = t.working.period / 2
+	t2.Working.Period = t.Working.Period / 2
 	b, err := json.Marshal(t2)
 	if err != nil {
 		panic(err)

@@ -8,10 +8,10 @@ import (
 )
 
 type test struct {
-	this    string
-	is      []bool
-	working struct {
-		period float64
+	This    string
+	Is      []bool
+	Working struct {
+		Period float64
 	}
 }
 
@@ -20,10 +20,10 @@ func main() {
 	h := rest.New("test")
 	w, r := h.Bytes()
 	t := &test{
-		this: "Th!s.",
-		is:   []bool{false, true},
+		This: "Th!s.",
+		Is:   []bool{false, true},
 	}
-	t.working.period = 420.69
+	t.Working.Period = 420.69
 	b, err := json.Marshal(t)
 	if err != nil {
 		panic(err)
