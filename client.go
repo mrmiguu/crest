@@ -57,14 +57,14 @@ func (c *client) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	defer h.getBytes.Unlock()
 
 	idx := len(h.postBytes.sl)
-	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte, n))
-	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte, n))
+	h.postBytes.sl = append(h.postBytes.sl, &getbytes{c: make(chan []byte, n)})
+	h.getBytes.sl = append(h.getBytes.sl, &getbytes{c: make(chan []byte, n)})
 	w := func(b []byte) {
 		go func() {
 			c.write(pattern, tbytes, idx, b)
-			<-h.postBytes.sl[idx]
+			<-h.postBytes.sl[idx].c
 		}()
-		h.postBytes.sl[idx] <- nil
+		h.postBytes.sl[idx].c <- nil
 	}
 	r := func() []byte { return c.read(pattern, tbytes, idx) }
 	return w, r
@@ -80,14 +80,14 @@ func (c *client) String(pattern string, n int) (func(string), func() string) {
 	defer h.getString.Unlock()
 
 	idx := len(h.postString.sl)
-	h.postString.sl = append(h.postString.sl, make(chan string, n))
-	h.getString.sl = append(h.getString.sl, make(chan string, n))
+	h.postString.sl = append(h.postString.sl, &getstring{c: make(chan string, n)})
+	h.getString.sl = append(h.getString.sl, &getstring{c: make(chan string, n)})
 	w := func(s string) {
 		go func() {
 			c.write(pattern, tstring, idx, []byte(s))
-			<-h.postString.sl[idx]
+			<-h.postString.sl[idx].c
 		}()
-		h.postString.sl[idx] <- ""
+		h.postString.sl[idx].c <- ""
 	}
 	r := func() string { return string(c.read(pattern, tstring, idx)) }
 	return w, r
@@ -103,14 +103,14 @@ func (c *client) Int(pattern string, n int) (func(int), func() int) {
 	defer h.getInt.Unlock()
 
 	idx := len(h.postInt.sl)
-	h.postInt.sl = append(h.postInt.sl, make(chan int, n))
-	h.getInt.sl = append(h.getInt.sl, make(chan int, n))
+	h.postInt.sl = append(h.postInt.sl, &getint{c: make(chan int, n)})
+	h.getInt.sl = append(h.getInt.sl, &getint{c: make(chan int, n)})
 	w := func(i int) {
 		go func() {
 			c.write(pattern, tint, idx, itob(i))
-			<-h.postInt.sl[idx]
+			<-h.postInt.sl[idx].c
 		}()
-		h.postInt.sl[idx] <- 0
+		h.postInt.sl[idx].c <- 0
 	}
 	r := func() int { return btoi(c.read(pattern, tint, idx)) }
 	return w, r

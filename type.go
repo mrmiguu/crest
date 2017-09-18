@@ -29,14 +29,34 @@ type Handler struct {
 	pattern             string
 	getBytes, postBytes struct {
 		sync.RWMutex
-		sl []chan []byte
+		sl []*getbytes
 	}
 	getString, postString struct {
 		sync.RWMutex
-		sl []chan string
+		sl []*getstring
 	}
 	getInt, postInt struct {
 		sync.RWMutex
-		sl []chan int
+		sl []*getint
 	}
+}
+
+type safecb struct {
+	sync.RWMutex
+	n int
+}
+
+type getbytes struct {
+	safecb
+	c chan []byte
+}
+
+type getstring struct {
+	safecb
+	c chan string
+}
+
+type getint struct {
+	safecb
+	c chan int
 }
