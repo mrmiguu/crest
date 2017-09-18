@@ -32,7 +32,11 @@ func (s *server) run(addr string) {
 		pattern, t, idx, msg := string(parts[0]), parts[1][0], btoi(parts[2]), parts[3]
 		s.h.RLock()
 		defer s.h.RUnlock()
-		h := s.h.m[pattern]
+		h, exists := s.h.m[pattern]
+		if !exists {
+			http.Error(w, "pattern does not exist", http.StatusNotFound)
+			return
+		}
 		switch t {
 		case tbytes:
 			h.postBytes.RLock()
@@ -59,7 +63,11 @@ func (s *server) run(addr string) {
 
 		s.h.RLock()
 		defer s.h.RUnlock()
-		h := s.h.m[pattern]
+		h, exists := s.h.m[pattern]
+		if !exists {
+			http.Error(w, "pattern does not exist", http.StatusNotFound)
+			return
+		}
 
 		switch t {
 		case tbytes:
