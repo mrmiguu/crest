@@ -2,7 +2,6 @@ package rest
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -105,12 +104,10 @@ func (c *client) Int(pattern string) (func(int), func() int) {
 	h.getInt.sl = append(h.getInt.sl, nil)
 	h.postInt.sl = append(h.postInt.sl, nil)
 	w := func(i int) {
-		b := make([]byte, 8)
-		binary.BigEndian.PutUint64(b, uint64(i))
-		c.write(pattern, tint, idx, b)
+		c.write(pattern, tint, idx, itob(i))
 	}
 	r := func() int {
-		return int(binary.BigEndian.Uint64(c.read(pattern, tint, idx)))
+		return btoi(c.read(pattern, tint, idx))
 	}
 	return w, r
 }

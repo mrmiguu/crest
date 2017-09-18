@@ -7,3 +7,7 @@ func itob(i int) []byte {
 	binary.BigEndian.PutUint64(b, uint64(i))
 	return b
 }
+
+func btoi(b []byte) int {
+	return int(binary.BigEndian.Uint64(b))
+}

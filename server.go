@@ -2,7 +2,6 @@ package rest
 
 import (
 	"bytes"
-	"encoding/binary"
 	"io/ioutil"
 	"net/http"
 )
@@ -32,7 +31,7 @@ func (s *server) run(addr string) {
 			panic(err)
 		}
 		parts := bytes.Split(b, v)
-		pattern, t, idx, msg := string(parts[0]), parts[1][0], int(binary.BigEndian.Uint64(parts[2])), parts[3]
+		pattern, t, idx, msg := string(parts[0]), parts[1][0], btoi(parts[2]), parts[3]
 		s.h.RLock()
 		defer s.h.RUnlock()
 		h := s.h.m[pattern]
@@ -47,7 +46,7 @@ func (s *server) run(addr string) {
 			h.postString.RUnlock()
 		case tint:
 			h.postInt.RLock()
-			h.postInt.sl[idx] <- int(binary.BigEndian.Uint64(msg))
+			h.postInt.sl[idx] <- btoi(msg)
 			h.postInt.RUnlock()
 		}
 	})
@@ -59,7 +58,7 @@ func (s *server) run(addr string) {
 			panic(err)
 		}
 		parts := bytes.Split(b, v)
-		pattern, t, idx := string(parts[0]), parts[1][0], int(binary.BigEndian.Uint64(parts[2]))
+		pattern, t, idx := string(parts[0]), parts[1][0], btoi(parts[2])
 		s.h.RLock()
 		defer s.h.RUnlock()
 		h := s.h.m[pattern]
@@ -73,9 +72,8 @@ func (s *server) run(addr string) {
 			b = []byte(<-h.getString.sl[idx])
 			h.getString.RUnlock()
 		case tint:
-			b = make([]byte, 8)
 			h.getInt.RLock()
-			binary.BigEndian.PutUint64(b, uint64(<-h.getInt.sl[idx]))
+			b = itob(<-h.getInt.sl[idx])
 			h.getInt.RUnlock()
 		}
 		w.Write(b)
