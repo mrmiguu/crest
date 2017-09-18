@@ -18,7 +18,7 @@ func (s *server) New(pattern string) *Handler {
 	if _, exists := s.h.m[pattern]; exists {
 		panic("pattern already exists")
 	}
-	h := &Handler{hptr: &s.h.m, pattern: pattern}
+	h := &Handler{hptr: &s.h, pattern: pattern}
 	s.h.m[pattern] = h
 	return h
 }
@@ -78,7 +78,7 @@ func (s *server) run(addr string) {
 	http.ListenAndServe(addr, nil)
 }
 
-func (s *server) Bytes(pattern string) (func([]byte), func() []byte) {
+func (s *server) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	s.h.RLock()
 	h := s.h.m[pattern]
 	h.getBytes.Lock()
@@ -88,15 +88,14 @@ func (s *server) Bytes(pattern string) (func([]byte), func() []byte) {
 	defer h.postBytes.Unlock()
 
 	idx := len(h.getBytes.sl)
-	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte))
-	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte))
-	getBytes, postBytes := h.getBytes.sl[idx], h.postBytes.sl[idx]
-	w := func(b []byte) { getBytes <- b }
-	r := func() []byte { return <-postBytes }
+	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte, n))
+	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte, n))
+	w := func(b []byte) { h.getBytes.sl[idx] <- b }
+	r := func() []byte { return <-h.postBytes.sl[idx] }
 	return w, r
 }
 
-func (s *server) String(pattern string) (func(string), func() string) {
+func (s *server) String(pattern string, n int) (func(string), func() string) {
 	s.h.RLock()
 	h := s.h.m[pattern]
 	h.getString.Lock()
@@ -106,15 +105,14 @@ func (s *server) String(pattern string) (func(string), func() string) {
 	defer h.postString.Unlock()
 
 	idx := len(h.getString.sl)
-	h.getString.sl = append(h.getString.sl, make(chan string))
-	h.postString.sl = append(h.postString.sl, make(chan string))
-	getString, postString := h.getString.sl[idx], h.postString.sl[idx]
-	w := func(x string) { getString <- x }
-	r := func() string { return <-postString }
+	h.getString.sl = append(h.getString.sl, make(chan string, n))
+	h.postString.sl = append(h.postString.sl, make(chan string, n))
+	w := func(x string) { h.getString.sl[idx] <- x }
+	r := func() string { return <-h.postString.sl[idx] }
 	return w, r
 }
 
-func (s *server) Int(pattern string) (func(int), func() int) {
+func (s *server) Int(pattern string, n int) (func(int), func() int) {
 	s.h.RLock()
 	h := s.h.m[pattern]
 	h.getInt.Lock()
@@ -124,10 +122,9 @@ func (s *server) Int(pattern string) (func(int), func() int) {
 	defer h.postInt.Unlock()
 
 	idx := len(h.getInt.sl)
-	h.getInt.sl = append(h.getInt.sl, make(chan int))
-	h.postInt.sl = append(h.postInt.sl, make(chan int))
-	getInt, postInt := h.getInt.sl[idx], h.postInt.sl[idx]
-	w := func(i int) { getInt <- i }
-	r := func() int { return <-postInt }
+	h.getInt.sl = append(h.getInt.sl, make(chan int, n))
+	h.postInt.sl = append(h.postInt.sl, make(chan int, n))
+	w := func(i int) { h.getInt.sl[idx] <- i }
+	r := func() int { return <-h.postInt.sl[idx] }
 	return w, r
 }

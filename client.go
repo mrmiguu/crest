@@ -20,7 +20,7 @@ func (c *client) New(pattern string) *Handler {
 	if _, exists := c.h.m[pattern]; exists {
 		panic("pattern already exists")
 	}
-	h := &Handler{hptr: &c.h.m, pattern: pattern}
+	h := &Handler{hptr: &c.h, pattern: pattern}
 	c.h.m[pattern] = h
 	return h
 }
@@ -47,53 +47,62 @@ func (c *client) read(pattern string, t byte, idx int) []byte {
 	return b
 }
 
-func (c *client) Bytes(pattern string) (func([]byte), func() []byte) {
+func (c *client) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	c.h.RLock()
 	h := c.h.m[pattern]
-	h.getBytes.Lock()
 	h.postBytes.Lock()
+	h.getBytes.Lock()
 	defer c.h.RUnlock()
-	defer h.getBytes.Unlock()
 	defer h.postBytes.Unlock()
+	defer h.getBytes.Unlock()
 
-	idx := len(h.getBytes.sl)
-	h.getBytes.sl = append(h.getBytes.sl, nil)
-	h.postBytes.sl = append(h.postBytes.sl, nil)
-	w := func(b []byte) { c.write(pattern, tbytes, idx, b) }
+	idx := len(h.postBytes.sl)
+	h.postBytes.sl = append(h.postBytes.sl, make(chan []byte, n))
+	h.getBytes.sl = append(h.getBytes.sl, make(chan []byte, n))
+	w := func(b []byte) {
+		go func() { c.write(pattern, tbytes, idx, <-h.postBytes.sl[idx]) }()
+		h.postBytes.sl[idx] <- b
+	}
 	r := func() []byte { return c.read(pattern, tbytes, idx) }
 	return w, r
 }
 
-func (c *client) String(pattern string) (func(string), func() string) {
+func (c *client) String(pattern string, n int) (func(string), func() string) {
 	c.h.RLock()
 	h := c.h.m[pattern]
-	h.getString.Lock()
 	h.postString.Lock()
+	h.getString.Lock()
 	defer c.h.RUnlock()
-	defer h.getString.Unlock()
 	defer h.postString.Unlock()
+	defer h.getString.Unlock()
 
-	idx := len(h.getString.sl)
-	h.getString.sl = append(h.getString.sl, nil)
-	h.postString.sl = append(h.postString.sl, nil)
-	w := func(s string) { c.write(pattern, tstring, idx, []byte(s)) }
+	idx := len(h.postString.sl)
+	h.postString.sl = append(h.postString.sl, make(chan string, n))
+	h.getString.sl = append(h.getString.sl, make(chan string, n))
+	w := func(s string) {
+		go func() { c.write(pattern, tstring, idx, []byte(<-h.postString.sl[idx])) }()
+		h.postString.sl[idx] <- s
+	}
 	r := func() string { return string(c.read(pattern, tstring, idx)) }
 	return w, r
 }
 
-func (c *client) Int(pattern string) (func(int), func() int) {
+func (c *client) Int(pattern string, n int) (func(int), func() int) {
 	c.h.RLock()
 	h := c.h.m[pattern]
-	h.getInt.Lock()
 	h.postInt.Lock()
+	h.getInt.Lock()
 	defer c.h.RUnlock()
-	defer h.getInt.Unlock()
 	defer h.postInt.Unlock()
+	defer h.getInt.Unlock()
 
-	idx := len(h.getInt.sl)
-	h.getInt.sl = append(h.getInt.sl, nil)
-	h.postInt.sl = append(h.postInt.sl, nil)
-	w := func(i int) { c.write(pattern, tint, idx, itob(i)) }
+	idx := len(h.postInt.sl)
+	h.postInt.sl = append(h.postInt.sl, make(chan int, n))
+	h.getInt.sl = append(h.getInt.sl, make(chan int, n))
+	w := func(i int) {
+		go func() { c.write(pattern, tint, idx, itob(<-h.postInt.sl[idx])) }()
+		h.postInt.sl[idx] <- i
+	}
 	r := func() int { return btoi(c.read(pattern, tint, idx)) }
 	return w, r
 }

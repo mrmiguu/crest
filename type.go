@@ -4,9 +4,9 @@ import "sync"
 
 type endpoint interface {
 	New(string) *Handler
-	Bytes(string) (func([]byte), func() []byte)
-	String(string) (func(string), func() string)
-	Int(string) (func(int), func() int)
+	Bytes(string, int) (func([]byte), func() []byte)
+	String(string, int) (func(string), func() string)
+	Int(string, int) (func(int), func() int)
 }
 
 type server struct {
@@ -25,7 +25,7 @@ type safeh struct {
 
 // Handler holds pattern-relative typed channels.
 type Handler struct {
-	hptr                *map[string]*Handler
+	hptr                *safeh
 	pattern             string
 	getBytes, postBytes struct {
 		sync.RWMutex
