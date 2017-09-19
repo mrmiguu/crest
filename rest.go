@@ -1,8 +1,10 @@
 package rest
 
+import "github.com/gopherjs/gopherjs/js"
+
 // Connect connects to an endpoint for channel creation/communication.
 func Connect(addr string) {
-	if isServer.MatchString(addr) {
+	if js.Global == nil {
 		endpt = newServer(addr)
 	} else {
 		endpt = newClient(addr)
