@@ -72,24 +72,21 @@ func (s *server) run(addr string) {
 		switch t {
 		case tbytes:
 			h.getBytes.RLock()
-			v := h.getBytes.sl[idx]
+			h.getBytes.sl[idx].n <- 1
+			b = <-h.getBytes.sl[idx].c
 			h.getBytes.RUnlock()
-			v.n <- 1
-			b = <-v.c
 
 		case tstring:
 			h.getString.RLock()
-			v := h.getString.sl[idx]
+			h.getString.sl[idx].n <- 1
+			b = []byte(<-h.getString.sl[idx].c)
 			h.getString.RUnlock()
-			v.n <- 1
-			b = []byte(<-v.c)
 
 		case tint:
 			h.getInt.RLock()
-			v := h.getInt.sl[idx]
+			h.getInt.sl[idx].n <- 1
+			b = itob(<-h.getInt.sl[idx].c)
 			h.getInt.RUnlock()
-			v.n <- 1
-			b = itob(<-v.c)
 		}
 
 		w.Write(b)
@@ -108,14 +105,17 @@ func (s *server) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	defer h.postBytes.Unlock()
 
 	idx := len(h.getBytes.sl)
-	h.getBytes.sl = append(h.getBytes.sl, &getbytes{make(chan int, xreads), make(chan []byte, n)})
+	h.getBytes.sl = append(h.getBytes.sl, &getbytes{make(chan int), make(chan []byte, n)})
 	h.postBytes.sl = append(h.postBytes.sl, &getbytes{c: make(chan []byte, n)})
 
 	get := h.getBytes.sl[idx]
 	w := func(b []byte) {
-		for z := len(get.n); z > 0; z-- {
+		for {
 			<-get.n
 			get.c <- b
+			if len(get.n) < 1 {
+				return
+			}
 		}
 	}
 
@@ -134,14 +134,17 @@ func (s *server) String(pattern string, n int) (func(string), func() string) {
 	defer h.postString.Unlock()
 
 	idx := len(h.getString.sl)
-	h.getString.sl = append(h.getString.sl, &getstring{make(chan int, xreads), make(chan string, n)})
+	h.getString.sl = append(h.getString.sl, &getstring{make(chan int), make(chan string, n)})
 	h.postString.sl = append(h.postString.sl, &getstring{c: make(chan string, n)})
 
 	get := h.getString.sl[idx]
 	w := func(x string) {
-		for z := len(get.n); z > 0; z-- {
+		for {
 			<-get.n
 			get.c <- x
+			if len(get.n) < 1 {
+				return
+			}
 		}
 	}
 
@@ -160,14 +163,17 @@ func (s *server) Int(pattern string, n int) (func(int), func() int) {
 	defer h.postInt.Unlock()
 
 	idx := len(h.getInt.sl)
-	h.getInt.sl = append(h.getInt.sl, &getint{make(chan int, xreads), make(chan int, n)})
+	h.getInt.sl = append(h.getInt.sl, &getint{make(chan int), make(chan int, n)})
 	h.postInt.sl = append(h.postInt.sl, &getint{c: make(chan int, n)})
 
 	get := h.getInt.sl[idx]
 	w := func(i int) {
-		for z := len(get.n); z > 0; z-- {
+		for {
 			<-get.n
 			get.c <- i
+			if len(get.n) < 1 {
+				return
+			}
 		}
 	}
 
