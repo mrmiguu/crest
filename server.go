@@ -72,33 +72,24 @@ func (s *server) run(addr string) {
 		switch t {
 		case tbytes:
 			h.getBytes.RLock()
-			h.getBytes.sl[idx].Lock()
-			h.getBytes.sl[idx].n++
-			h.getBytes.sl[idx].Unlock()
-			ch := h.getBytes.sl[idx].c
+			v := h.getBytes.sl[idx]
 			h.getBytes.RUnlock()
-
-			b = <-ch
+			v.n <- 1
+			b = <-v.c
 
 		case tstring:
 			h.getString.RLock()
-			h.getString.sl[idx].Lock()
-			h.getString.sl[idx].n++
-			h.getString.sl[idx].Unlock()
-			ch := h.getString.sl[idx].c
+			v := h.getString.sl[idx]
 			h.getString.RUnlock()
-
-			b = []byte(<-ch)
+			v.n <- 1
+			b = []byte(<-v.c)
 
 		case tint:
 			h.getInt.RLock()
-			h.getInt.sl[idx].Lock()
-			h.getInt.sl[idx].n++
-			h.getInt.sl[idx].Unlock()
-			ch := h.getInt.sl[idx].c
+			v := h.getInt.sl[idx]
 			h.getInt.RUnlock()
-
-			b = itob(<-ch)
+			v.n <- 1
+			b = itob(<-v.c)
 		}
 
 		w.Write(b)
@@ -117,16 +108,15 @@ func (s *server) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	defer h.postBytes.Unlock()
 
 	idx := len(h.getBytes.sl)
-	h.getBytes.sl = append(h.getBytes.sl, &getbytes{c: make(chan []byte, n)})
+	h.getBytes.sl = append(h.getBytes.sl, &getbytes{make(chan int, xreads), make(chan []byte, n)})
 	h.postBytes.sl = append(h.postBytes.sl, &getbytes{c: make(chan []byte, n)})
 
 	get := h.getBytes.sl[idx]
 	w := func(b []byte) {
-		get.RLock()
-		for z := 0; z < get.n; z++ {
+		for z := len(get.n); z > 0; z-- {
+			<-get.n
 			get.c <- b
 		}
-		get.RUnlock()
 	}
 
 	r := func() []byte { return <-h.postBytes.sl[idx].c }
@@ -144,16 +134,15 @@ func (s *server) String(pattern string, n int) (func(string), func() string) {
 	defer h.postString.Unlock()
 
 	idx := len(h.getString.sl)
-	h.getString.sl = append(h.getString.sl, &getstring{c: make(chan string, n)})
+	h.getString.sl = append(h.getString.sl, &getstring{make(chan int, xreads), make(chan string, n)})
 	h.postString.sl = append(h.postString.sl, &getstring{c: make(chan string, n)})
 
 	get := h.getString.sl[idx]
 	w := func(x string) {
-		get.RLock()
-		for z := 0; z < get.n; z++ {
+		for z := len(get.n); z > 0; z-- {
+			<-get.n
 			get.c <- x
 		}
-		get.RUnlock()
 	}
 
 	r := func() string { return <-h.postString.sl[idx].c }
@@ -171,16 +160,15 @@ func (s *server) Int(pattern string, n int) (func(int), func() int) {
 	defer h.postInt.Unlock()
 
 	idx := len(h.getInt.sl)
-	h.getInt.sl = append(h.getInt.sl, &getint{c: make(chan int, n)})
+	h.getInt.sl = append(h.getInt.sl, &getint{make(chan int, xreads), make(chan int, n)})
 	h.postInt.sl = append(h.postInt.sl, &getint{c: make(chan int, n)})
 
 	get := h.getInt.sl[idx]
 	w := func(i int) {
-		get.RLock()
-		for z := 0; z < get.n; z++ {
+		for z := len(get.n); z > 0; z-- {
+			<-get.n
 			get.c <- i
 		}
-		get.RUnlock()
 	}
 
 	r := func() int { return <-h.postInt.sl[idx].c }

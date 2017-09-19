@@ -41,22 +41,17 @@ type Handler struct {
 	}
 }
 
-type safecb struct {
-	sync.RWMutex
-	n int
-}
-
 type getbytes struct {
-	safecb
+	n chan int
 	c chan []byte
 }
 
 type getstring struct {
-	safecb
+	n chan int
 	c chan string
 }
 
 type getint struct {
-	safecb
+	n chan int
 	c chan int
 }
