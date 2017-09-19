@@ -29,8 +29,9 @@ func (c *client) write(pattern string, t byte, idx int, msg []byte) {
 	i := itob(idx)
 	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, i, msg}, v)
 	var err error
-	for ok := true; ok; ok = (err != nil) {
-		_, err = http.Post(c.addr+"/post", "text/plain", bytes.NewReader(b))
+	var resp *http.Response
+	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
+		resp, err = http.Post(c.addr+"/post", "text/plain", bytes.NewReader(b))
 	}
 }
 
@@ -39,7 +40,7 @@ func (c *client) read(pattern string, t byte, idx int) []byte {
 	b := bytes.Join([][]byte{[]byte(pattern), []byte{t}, i}, v)
 	var err error
 	var resp *http.Response
-	for ok := true; ok; ok = (err != nil) {
+	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
 		resp, err = http.Post(c.addr+"/get", "text/plain", bytes.NewReader(b))
 	}
 	b, err = ioutil.ReadAll(resp.Body)

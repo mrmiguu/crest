@@ -19,11 +19,12 @@ type test struct {
 
 func main() {
 	rest.Connect("127.0.0.1:80")
+	time.Sleep(3 * time.Second)
 	h := rest.New("test")
 	w, r := h.Bytes()
 	var t test
 	println("r()...")
-	r()
+	// r()
 	err := json.Unmarshal(r(), &t)
 	if err != nil {
 		panic(err)
