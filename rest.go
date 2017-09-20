@@ -21,7 +21,7 @@ func Bytes(pattern string, buf ...int) (func([]byte), func() []byte) {
 	return w, r
 }
 
-// String creates a string REST channel for one-time use.
+// String creates a volatile string REST channel.
 func String(pattern string, buf ...int) (func(string), func() string) {
 	h := New(pattern)
 	w, r := h.String(buf...)
@@ -30,7 +30,7 @@ func String(pattern string, buf ...int) (func(string), func() string) {
 	return w, r
 }
 
-// Int creates a int REST channel for one-time use.
+// Int creates a volatile int REST channel.
 func Int(pattern string, buf ...int) (func(int), func() int) {
 	h := New(pattern)
 	w, r := h.Int(buf...)
@@ -39,7 +39,7 @@ func Int(pattern string, buf ...int) (func(int), func() int) {
 	return w, r
 }
 
-// Bool creates a bool REST channel for one-time use.
+// Bool creates a volatile bool REST channel.
 func Bool(pattern string, buf ...int) (func(bool), func() bool) {
 	h := New(pattern)
 	w, r := h.Bool(buf...)
