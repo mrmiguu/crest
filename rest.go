@@ -5,10 +5,8 @@ import "github.com/gopherjs/gopherjs/js"
 // Connect connects to an endpoint for channel creation/communication.
 func Connect(addr string) {
 	if js.Global == nil {
-		println("[server @ " + addr + "]")
 		endpt = newServer(addr)
 	} else {
-		println("[client @ " + addr + "]")
 		endpt = newClient(addr)
 	}
 }
