@@ -62,3 +62,15 @@ func (h *Handler) Int(buf ...int) (func(int), func() int) {
 	}
 	return endpt.Int(h.pattern, n)
 }
+
+// Bool creates a bool REST channel.
+func (h *Handler) Bool(buf ...int) (func(bool), func() bool) {
+	if len(buf) > 1 {
+		panic("too many arguments")
+	}
+	n := 0
+	if len(buf) > 0 {
+		n = buf[0]
+	}
+	return endpt.Bool(h.pattern, n)
+}

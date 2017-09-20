@@ -7,6 +7,7 @@ type endpoint interface {
 	Bytes(string, int) (func([]byte), func() []byte)
 	String(string, int) (func(string), func() string)
 	Int(string, int) (func(int), func() int)
+	Bool(string, int) (func(bool), func() bool)
 }
 
 type server struct {
@@ -39,6 +40,10 @@ type Handler struct {
 		sync.RWMutex
 		sl []*getint
 	}
+	getBool, postBool struct {
+		sync.RWMutex
+		sl []*getbool
+	}
 }
 
 type getbytes struct {
@@ -54,4 +59,9 @@ type getstring struct {
 type getint struct {
 	n chan int
 	c chan int
+}
+
+type getbool struct {
+	n chan int
+	c chan bool
 }

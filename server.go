@@ -50,6 +50,10 @@ func (s *server) run(addr string) {
 			h.postInt.RLock()
 			h.postInt.sl[idx].c <- btoi(msg)
 			h.postInt.RUnlock()
+		case tbool:
+			h.postBool.RLock()
+			h.postBool.sl[idx].c <- bytes2bool(msg)
+			h.postBool.RUnlock()
 		}
 	})
 
@@ -87,6 +91,12 @@ func (s *server) run(addr string) {
 			h.getInt.sl[idx].n <- 1
 			b = itob(<-h.getInt.sl[idx].c)
 			h.getInt.RUnlock()
+
+		case tbool:
+			h.getBool.RLock()
+			h.getBool.sl[idx].n <- 1
+			b = bool2bytes(<-h.getBool.sl[idx].c)
+			h.getBool.RUnlock()
 		}
 
 		w.Write(b)
@@ -178,6 +188,35 @@ func (s *server) Int(pattern string, n int) (func(int), func() int) {
 	}
 
 	r := func() int { return <-h.postInt.sl[idx].c }
+
+	return w, r
+}
+
+func (s *server) Bool(pattern string, n int) (func(bool), func() bool) {
+	s.h.RLock()
+	h := s.h.m[pattern]
+	h.getBool.Lock()
+	h.postBool.Lock()
+	defer s.h.RUnlock()
+	defer h.getBool.Unlock()
+	defer h.postBool.Unlock()
+
+	idx := len(h.getBool.sl)
+	h.getBool.sl = append(h.getBool.sl, &getbool{make(chan int, xreads), make(chan bool, n)})
+	h.postBool.sl = append(h.postBool.sl, &getbool{c: make(chan bool, n)})
+
+	get := h.getBool.sl[idx]
+	w := func(b bool) {
+		for {
+			<-get.n
+			get.c <- b
+			if len(get.n) < 1 {
+				return
+			}
+		}
+	}
+
+	r := func() bool { return <-h.postBool.sl[idx].c }
 
 	return w, r
 }

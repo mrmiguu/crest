@@ -1,6 +1,7 @@
 package rest
 
 import "encoding/binary"
+import "strconv"
 
 func must(err error) {
 	if err != nil {
@@ -16,4 +17,13 @@ func itob(i int) []byte {
 
 func btoi(b []byte) int {
 	return int(binary.BigEndian.Uint64(b))
+}
+
+func bytes2bool(b []byte) bool {
+	tf, _ := strconv.ParseBool(string(b))
+	return tf
+}
+
+func bool2bytes(b bool) []byte {
+	return strconv.AppendBool(nil, b)
 }

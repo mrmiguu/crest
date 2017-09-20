@@ -116,3 +116,26 @@ func (c *client) Int(pattern string, n int) (func(int), func() int) {
 	r := func() int { return btoi(c.read(pattern, tint, idx)) }
 	return w, r
 }
+
+func (c *client) Bool(pattern string, n int) (func(bool), func() bool) {
+	c.h.RLock()
+	h := c.h.m[pattern]
+	h.postBool.Lock()
+	h.getBool.Lock()
+	defer c.h.RUnlock()
+	defer h.postBool.Unlock()
+	defer h.getBool.Unlock()
+
+	idx := len(h.postBool.sl)
+	h.postBool.sl = append(h.postBool.sl, &getbool{c: make(chan bool, n)})
+	h.getBool.sl = append(h.getBool.sl, &getbool{c: make(chan bool, n)})
+	w := func(b bool) {
+		go func() {
+			c.write(pattern, tbool, idx, bool2bytes(b))
+			<-h.postBool.sl[idx].c
+		}()
+		h.postBool.sl[idx].c <- true
+	}
+	r := func() bool { return bytes2bool(c.read(pattern, tbool, idx)) }
+	return w, r
+}
