@@ -1,6 +1,7 @@
 package rest
 
 import "github.com/gopherjs/gopherjs/js"
+import "runtime"
 
 // Connect connects to an endpoint for channel creation/communication.
 func Connect(addr string) {
@@ -11,72 +12,40 @@ func Connect(addr string) {
 	}
 }
 
-// Bytes creates a byte slice REST channel for one-time use.
-func Bytes(pattern string, buf ...int) func(...[]byte) []byte {
+// Bytes creates a volatile byte slice REST channel.
+func Bytes(pattern string, buf ...int) (func([]byte), func() []byte) {
 	h := New(pattern)
 	w, r := h.Bytes(buf...)
-	return func(x ...[]byte) (y []byte) {
-		defer h.Close()
-		if len(x) > 1 {
-			panic("too many arguments")
-		} else if len(x) > 0 {
-			w(x[0])
-		} else {
-			y = r()
-		}
-		return
-	}
+	runtime.SetFinalizer(w, func(_ func(_ []byte)) { h.Close() })
+	runtime.SetFinalizer(r, func(_ func() []byte) { h.Close() })
+	return w, r
 }
 
 // String creates a string REST channel for one-time use.
-func String(pattern string, buf ...int) func(...string) string {
+func String(pattern string, buf ...int) (func(string), func() string) {
 	h := New(pattern)
 	w, r := h.String(buf...)
-	return func(x ...string) (y string) {
-		defer h.Close()
-		if len(x) > 1 {
-			panic("too many arguments")
-		} else if len(x) > 0 {
-			w(x[0])
-		} else {
-			y = r()
-		}
-		return
-	}
+	runtime.SetFinalizer(w, func(_ func(_ string)) { h.Close() })
+	runtime.SetFinalizer(r, func(_ func() string) { h.Close() })
+	return w, r
 }
 
 // Int creates a int REST channel for one-time use.
-func Int(pattern string, buf ...int) func(...int) int {
+func Int(pattern string, buf ...int) (func(int), func() int) {
 	h := New(pattern)
 	w, r := h.Int(buf...)
-	return func(x ...int) (y int) {
-		defer h.Close()
-		if len(x) > 1 {
-			panic("too many arguments")
-		} else if len(x) > 0 {
-			w(x[0])
-		} else {
-			y = r()
-		}
-		return
-	}
+	runtime.SetFinalizer(w, func(_ func(_ int)) { h.Close() })
+	runtime.SetFinalizer(r, func(_ func() int) { h.Close() })
+	return w, r
 }
 
 // Bool creates a bool REST channel for one-time use.
-func Bool(pattern string, buf ...int) func(...bool) bool {
+func Bool(pattern string, buf ...int) (func(bool), func() bool) {
 	h := New(pattern)
 	w, r := h.Bool(buf...)
-	return func(x ...bool) (y bool) {
-		defer h.Close()
-		if len(x) > 1 {
-			panic("too many arguments")
-		} else if len(x) > 0 {
-			w(x[0])
-		} else {
-			y = r()
-		}
-		return
-	}
+	runtime.SetFinalizer(w, func(_ func(_ bool)) { h.Close() })
+	runtime.SetFinalizer(r, func(_ func() bool) { h.Close() })
+	return w, r
 }
 
 // New creates a handler for REST channel building.
