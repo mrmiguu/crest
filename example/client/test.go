@@ -25,7 +25,6 @@ func main() {
 	w, r := h.Bytes()
 	var t test
 	println("r()...")
-	// r()
 	err := json.Unmarshal(r(), &t)
 	if err != nil {
 		panic(err)
