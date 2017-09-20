@@ -1,7 +1,6 @@
 package rest
 
 import "github.com/gopherjs/gopherjs/js"
-import "runtime"
 
 // Connect connects to an endpoint for channel creation/communication.
 func Connect(addr string) {
@@ -10,42 +9,6 @@ func Connect(addr string) {
 	} else {
 		endpt = newClient(addr)
 	}
-}
-
-// Bytes creates a volatile byte slice REST channel.
-func Bytes(pattern string, buf ...int) (func([]byte), func() []byte) {
-	h := New(pattern)
-	w, r := h.Bytes(buf...)
-	runtime.SetFinalizer(w, func(_ func(_ []byte)) { h.Close() })
-	runtime.SetFinalizer(r, func(_ func() []byte) { h.Close() })
-	return w, r
-}
-
-// String creates a volatile string REST channel.
-func String(pattern string, buf ...int) (func(string), func() string) {
-	h := New(pattern)
-	w, r := h.String(buf...)
-	runtime.SetFinalizer(w, func(_ func(_ string)) { h.Close() })
-	runtime.SetFinalizer(r, func(_ func() string) { h.Close() })
-	return w, r
-}
-
-// Int creates a volatile int REST channel.
-func Int(pattern string, buf ...int) (func(int), func() int) {
-	h := New(pattern)
-	w, r := h.Int(buf...)
-	runtime.SetFinalizer(w, func(_ func(_ int)) { h.Close() })
-	runtime.SetFinalizer(r, func(_ func() int) { h.Close() })
-	return w, r
-}
-
-// Bool creates a volatile bool REST channel.
-func Bool(pattern string, buf ...int) (func(bool), func() bool) {
-	h := New(pattern)
-	w, r := h.Bool(buf...)
-	runtime.SetFinalizer(w, func(_ func(_ bool)) { h.Close() })
-	runtime.SetFinalizer(r, func(_ func() bool) { h.Close() })
-	return w, r
 }
 
 // New creates a handler for REST channel building.
