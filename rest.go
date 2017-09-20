@@ -15,31 +15,39 @@ func Connect(addr string) {
 	global = New("")
 }
 
+func defaultConnect() {
+	if endpt == nil {
+		Connect("/")
+	}
+}
+
 // Bytes creates a byte slice REST channel.
 func Bytes(buf ...int) (func([]byte), func() []byte) {
+	defaultConnect()
 	return global.Bytes(buf...)
 }
 
 // String creates a string REST channel.
 func String(buf ...int) (func(string), func() string) {
+	defaultConnect()
 	return global.String(buf...)
 }
 
 // Int creates an int REST channel.
 func Int(buf ...int) (func(int), func() int) {
+	defaultConnect()
 	return global.Int(buf...)
 }
 
 // Bool creates a bool REST channel.
 func Bool(buf ...int) (func(bool), func() bool) {
+	defaultConnect()
 	return global.Bool(buf...)
 }
 
 // New creates a handler for REST channel building.
 func New(pattern string) *Handler {
-	if endpt == nil {
-		Connect("/")
-	}
+	defaultConnect()
 	return endpt.New(pattern)
 }
 
