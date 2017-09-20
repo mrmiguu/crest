@@ -11,6 +11,42 @@ func Connect(addr string) {
 	}
 }
 
+// Bytes creates a byte slice REST channel for one-time use.
+func Bytes(pattern string, buf ...int) (func([]byte), func() []byte) {
+	h := New(pattern)
+	wcloser, rcloser := h.Bytes(buf...)
+	w := func(b []byte) { defer h.Close(); wcloser(b) }
+	r := func() []byte { defer h.Close(); return rcloser() }
+	return w, r
+}
+
+// String creates a string REST channel for one-time use.
+func String(pattern string, buf ...int) (func(string), func() string) {
+	h := New(pattern)
+	wcloser, rcloser := h.String(buf...)
+	w := func(s string) { defer h.Close(); wcloser(s) }
+	r := func() string { defer h.Close(); return rcloser() }
+	return w, r
+}
+
+// Int creates a int REST channel for one-time use.
+func Int(pattern string, buf ...int) (func(int), func() int) {
+	h := New(pattern)
+	wcloser, rcloser := h.Int(buf...)
+	w := func(i int) { defer h.Close(); wcloser(i) }
+	r := func() int { defer h.Close(); return rcloser() }
+	return w, r
+}
+
+// Bool creates a bool REST channel for one-time use.
+func Bool(pattern string, buf ...int) (func(bool), func() bool) {
+	h := New(pattern)
+	wcloser, rcloser := h.Bool(buf...)
+	w := func(b bool) { defer h.Close(); wcloser(b) }
+	r := func() bool { defer h.Close(); return rcloser() }
+	return w, r
+}
+
 // New creates a handler for REST channel building.
 func New(pattern string) *Handler {
 	if endpt == nil {
