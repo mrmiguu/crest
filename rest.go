@@ -12,39 +12,71 @@ func Connect(addr string) {
 }
 
 // Bytes creates a byte slice REST channel for one-time use.
-func Bytes(pattern string, buf ...int) (func([]byte), func() []byte) {
+func Bytes(pattern string, buf ...int) func(...[]byte) []byte {
 	h := New(pattern)
-	wcloser, rcloser := h.Bytes(buf...)
-	w := func(b []byte) { defer h.Close(); wcloser(b) }
-	r := func() []byte { defer h.Close(); return rcloser() }
-	return w, r
+	w, r := h.Bytes(buf...)
+	return func(x ...[]byte) (y []byte) {
+		defer h.Close()
+		if len(x) > 1 {
+			panic("too many arguments")
+		} else if len(x) > 0 {
+			w(x[0])
+		} else {
+			y = r()
+		}
+		return
+	}
 }
 
 // String creates a string REST channel for one-time use.
-func String(pattern string, buf ...int) (func(string), func() string) {
+func String(pattern string, buf ...int) func(...string) string {
 	h := New(pattern)
-	wcloser, rcloser := h.String(buf...)
-	w := func(s string) { defer h.Close(); wcloser(s) }
-	r := func() string { defer h.Close(); return rcloser() }
-	return w, r
+	w, r := h.String(buf...)
+	return func(x ...string) (y string) {
+		defer h.Close()
+		if len(x) > 1 {
+			panic("too many arguments")
+		} else if len(x) > 0 {
+			w(x[0])
+		} else {
+			y = r()
+		}
+		return
+	}
 }
 
 // Int creates a int REST channel for one-time use.
-func Int(pattern string, buf ...int) (func(int), func() int) {
+func Int(pattern string, buf ...int) func(...int) int {
 	h := New(pattern)
-	wcloser, rcloser := h.Int(buf...)
-	w := func(i int) { defer h.Close(); wcloser(i) }
-	r := func() int { defer h.Close(); return rcloser() }
-	return w, r
+	w, r := h.Int(buf...)
+	return func(x ...int) (y int) {
+		defer h.Close()
+		if len(x) > 1 {
+			panic("too many arguments")
+		} else if len(x) > 0 {
+			w(x[0])
+		} else {
+			y = r()
+		}
+		return
+	}
 }
 
 // Bool creates a bool REST channel for one-time use.
-func Bool(pattern string, buf ...int) (func(bool), func() bool) {
+func Bool(pattern string, buf ...int) func(...bool) bool {
 	h := New(pattern)
-	wcloser, rcloser := h.Bool(buf...)
-	w := func(b bool) { defer h.Close(); wcloser(b) }
-	r := func() bool { defer h.Close(); return rcloser() }
-	return w, r
+	w, r := h.Bool(buf...)
+	return func(x ...bool) (y bool) {
+		defer h.Close()
+		if len(x) > 1 {
+			panic("too many arguments")
+		} else if len(x) > 0 {
+			w(x[0])
+		} else {
+			y = r()
+		}
+		return
+	}
 }
 
 // New creates a handler for REST channel building.
