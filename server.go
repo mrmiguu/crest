@@ -24,7 +24,7 @@ func (s *server) New(pattern string) *Handler {
 }
 
 func (s *server) run(addr string) {
-	http.HandleFunc("/post", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(postSHA1, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
 		must(err)
@@ -57,7 +57,7 @@ func (s *server) run(addr string) {
 		}
 	})
 
-	http.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(getSHA1, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
 		must(err)

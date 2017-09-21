@@ -31,7 +31,7 @@ func (c *client) write(pattern string, t byte, idx int, msg []byte) {
 	var err error
 	var resp *http.Response
 	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
-		resp, err = http.Post(c.addr+"/post", "text/plain", bytes.NewReader(b))
+		resp, err = http.Post(c.addr+postSHA1, "text/plain", bytes.NewReader(b))
 	}
 }
 
@@ -41,7 +41,7 @@ func (c *client) read(pattern string, t byte, idx int) []byte {
 	var err error
 	var resp *http.Response
 	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
-		resp, err = http.Post(c.addr+"/get", "text/plain", bytes.NewReader(b))
+		resp, err = http.Post(c.addr+getSHA1, "text/plain", bytes.NewReader(b))
 	}
 	b, err = ioutil.ReadAll(resp.Body)
 	must(err)
