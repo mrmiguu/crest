@@ -23,14 +23,6 @@ func (s *server) New(pattern string) *Handler {
 	return h
 }
 
-func onPanicResp(w http.ResponseWriter, error string, code int) {
-	e := recover()
-	if e == nil {
-		return
-	}
-	http.Error(w, error, code)
-}
-
 func (s *server) run(addr string) {
 	http.HandleFunc(Write, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
@@ -55,23 +47,41 @@ func (s *server) run(addr string) {
 			return
 		}
 
-		defer onPanicResp(w, "index does not exist", http.StatusNotFound)
 		switch t {
 		case Tbytes:
 			h.postBytes.RLock()
 			defer h.postBytes.RUnlock()
+			if idx > len(h.postBytes.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.postBytes.sl[idx].c <- msg
+
 		case Tstring:
 			h.postString.RLock()
 			defer h.postString.RUnlock()
+			if idx > len(h.postString.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.postString.sl[idx].c <- string(msg)
+
 		case Tint:
 			h.postInt.RLock()
 			defer h.postInt.RUnlock()
+			if idx > len(h.postInt.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.postInt.sl[idx].c <- btoi(msg)
+
 		case Tbool:
 			h.postBool.RLock()
 			defer h.postBool.RUnlock()
+			if idx > len(h.postBool.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.postBool.sl[idx].c <- bytes2bool(msg)
 		}
 	})
@@ -99,26 +109,44 @@ func (s *server) run(addr string) {
 			return
 		}
 
-		defer onPanicResp(w, "index does not exist", http.StatusNotFound)
 		switch t {
 		case Tbytes:
 			h.getBytes.RLock()
 			defer h.getBytes.RUnlock()
+			if idx > len(h.getBytes.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.getBytes.sl[idx].n <- 1
 			b = <-h.getBytes.sl[idx].c
+
 		case Tstring:
 			h.getString.RLock()
 			defer h.getString.RUnlock()
+			if idx > len(h.getString.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.getString.sl[idx].n <- 1
 			b = []byte(<-h.getString.sl[idx].c)
+
 		case Tint:
 			h.getInt.RLock()
 			defer h.getInt.RUnlock()
+			if idx > len(h.getInt.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.getInt.sl[idx].n <- 1
 			b = itob(<-h.getInt.sl[idx].c)
+
 		case Tbool:
 			h.getBool.RLock()
 			defer h.getBool.RUnlock()
+			if idx > len(h.getBool.sl)-1 {
+				http.Error(w, "index does not exist", http.StatusNotFound)
+				return
+			}
 			h.getBool.sl[idx].n <- 1
 			b = bool2bytes(<-h.getBool.sl[idx].c)
 		}
