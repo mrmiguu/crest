@@ -23,12 +23,20 @@ func (s *server) New(pattern string) *Handler {
 	return h
 }
 
+func onPanicResp(w http.ResponseWriter, error string, code int) {
+	e := recover()
+	if e == nil {
+		return
+	}
+	http.Error(w, error, code)
+}
+
 func (s *server) run(addr string) {
 	http.HandleFunc(Write, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -47,23 +55,24 @@ func (s *server) run(addr string) {
 			return
 		}
 
+		defer onPanicResp(w, "index does not exist", http.StatusNotFound)
 		switch t {
 		case Tbytes:
 			h.postBytes.RLock()
+			defer h.postBytes.RUnlock()
 			h.postBytes.sl[idx].c <- msg
-			h.postBytes.RUnlock()
 		case Tstring:
 			h.postString.RLock()
+			defer h.postString.RUnlock()
 			h.postString.sl[idx].c <- string(msg)
-			h.postString.RUnlock()
 		case Tint:
 			h.postInt.RLock()
+			defer h.postInt.RUnlock()
 			h.postInt.sl[idx].c <- btoi(msg)
-			h.postInt.RUnlock()
 		case Tbool:
 			h.postBool.RLock()
+			defer h.postBool.RUnlock()
 			h.postBool.sl[idx].c <- bytes2bool(msg)
-			h.postBool.RUnlock()
 		}
 	})
 
@@ -71,7 +80,7 @@ func (s *server) run(addr string) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -90,27 +99,28 @@ func (s *server) run(addr string) {
 			return
 		}
 
+		defer onPanicResp(w, "index does not exist", http.StatusNotFound)
 		switch t {
 		case Tbytes:
 			h.getBytes.RLock()
+			defer h.getBytes.RUnlock()
 			h.getBytes.sl[idx].n <- 1
 			b = <-h.getBytes.sl[idx].c
-			h.getBytes.RUnlock()
 		case Tstring:
 			h.getString.RLock()
+			defer h.getString.RUnlock()
 			h.getString.sl[idx].n <- 1
 			b = []byte(<-h.getString.sl[idx].c)
-			h.getString.RUnlock()
 		case Tint:
 			h.getInt.RLock()
+			defer h.getInt.RUnlock()
 			h.getInt.sl[idx].n <- 1
 			b = itob(<-h.getInt.sl[idx].c)
-			h.getInt.RUnlock()
 		case Tbool:
 			h.getBool.RLock()
+			defer h.getBool.RUnlock()
 			h.getBool.sl[idx].n <- 1
 			b = bool2bytes(<-h.getBool.sl[idx].c)
-			h.getBool.RUnlock()
 		}
 
 		w.Write(b)
