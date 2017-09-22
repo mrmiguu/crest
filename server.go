@@ -24,12 +24,21 @@ func (s *server) New(pattern string) *Handler {
 }
 
 func (s *server) run(addr string) {
-	http.HandleFunc(postSHA1, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(Write, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
-		must(err)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
 		parts := bytes.Split(b, v)
+		if len(parts) != 4 {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
 		pattern, t, idx, msg := string(parts[0]), parts[1][0], btoi(parts[2]), parts[3]
+
 		s.h.RLock()
 		defer s.h.RUnlock()
 		h, exists := s.h.m[pattern]
@@ -37,32 +46,40 @@ func (s *server) run(addr string) {
 			http.Error(w, "pattern does not exist", http.StatusNotFound)
 			return
 		}
+
 		switch t {
-		case tbytes:
+		case Tbytes:
 			h.postBytes.RLock()
 			h.postBytes.sl[idx].c <- msg
 			h.postBytes.RUnlock()
-		case tstring:
+		case Tstring:
 			h.postString.RLock()
 			h.postString.sl[idx].c <- string(msg)
 			h.postString.RUnlock()
-		case tint:
+		case Tint:
 			h.postInt.RLock()
 			h.postInt.sl[idx].c <- btoi(msg)
 			h.postInt.RUnlock()
-		case tbool:
+		case Tbool:
 			h.postBool.RLock()
 			h.postBool.sl[idx].c <- bytes2bool(msg)
 			h.postBool.RUnlock()
 		}
 	})
 
-	http.HandleFunc(getSHA1, func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(Read, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
-		must(err)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
 
 		parts := bytes.Split(b, v)
+		if len(parts) != 3 {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
 		pattern, t, idx := string(parts[0]), parts[1][0], btoi(parts[2])
 
 		s.h.RLock()
@@ -74,25 +91,22 @@ func (s *server) run(addr string) {
 		}
 
 		switch t {
-		case tbytes:
+		case Tbytes:
 			h.getBytes.RLock()
 			h.getBytes.sl[idx].n <- 1
 			b = <-h.getBytes.sl[idx].c
 			h.getBytes.RUnlock()
-
-		case tstring:
+		case Tstring:
 			h.getString.RLock()
 			h.getString.sl[idx].n <- 1
 			b = []byte(<-h.getString.sl[idx].c)
 			h.getString.RUnlock()
-
-		case tint:
+		case Tint:
 			h.getInt.RLock()
 			h.getInt.sl[idx].n <- 1
 			b = itob(<-h.getInt.sl[idx].c)
 			h.getInt.RUnlock()
-
-		case tbool:
+		case Tbool:
 			h.getBool.RLock()
 			h.getBool.sl[idx].n <- 1
 			b = bool2bytes(<-h.getBool.sl[idx].c)

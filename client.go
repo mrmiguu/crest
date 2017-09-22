@@ -31,7 +31,7 @@ func (c *client) write(pattern string, t byte, idx int, msg []byte) {
 	var err error
 	var resp *http.Response
 	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
-		resp, err = http.Post(c.addr+postSHA1, "text/plain", bytes.NewReader(b))
+		resp, err = http.Post(c.addr+Write, "text/plain", bytes.NewReader(b))
 	}
 }
 
@@ -41,7 +41,7 @@ func (c *client) read(pattern string, t byte, idx int) []byte {
 	var err error
 	var resp *http.Response
 	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
-		resp, err = http.Post(c.addr+getSHA1, "text/plain", bytes.NewReader(b))
+		resp, err = http.Post(c.addr+Read, "text/plain", bytes.NewReader(b))
 	}
 	b, err = ioutil.ReadAll(resp.Body)
 	must(err)
@@ -62,12 +62,12 @@ func (c *client) Bytes(pattern string, n int) (func([]byte), func() []byte) {
 	h.getBytes.sl = append(h.getBytes.sl, &getbytes{c: make(chan []byte, n)})
 	w := func(b []byte) {
 		go func() {
-			c.write(pattern, tbytes, idx, b)
+			c.write(pattern, Tbytes, idx, b)
 			<-h.postBytes.sl[idx].c
 		}()
 		h.postBytes.sl[idx].c <- nil
 	}
-	r := func() []byte { return c.read(pattern, tbytes, idx) }
+	r := func() []byte { return c.read(pattern, Tbytes, idx) }
 	return w, r
 }
 
@@ -85,12 +85,12 @@ func (c *client) String(pattern string, n int) (func(string), func() string) {
 	h.getString.sl = append(h.getString.sl, &getstring{c: make(chan string, n)})
 	w := func(s string) {
 		go func() {
-			c.write(pattern, tstring, idx, []byte(s))
+			c.write(pattern, Tstring, idx, []byte(s))
 			<-h.postString.sl[idx].c
 		}()
 		h.postString.sl[idx].c <- ""
 	}
-	r := func() string { return string(c.read(pattern, tstring, idx)) }
+	r := func() string { return string(c.read(pattern, Tstring, idx)) }
 	return w, r
 }
 
@@ -108,12 +108,12 @@ func (c *client) Int(pattern string, n int) (func(int), func() int) {
 	h.getInt.sl = append(h.getInt.sl, &getint{c: make(chan int, n)})
 	w := func(i int) {
 		go func() {
-			c.write(pattern, tint, idx, itob(i))
+			c.write(pattern, Tint, idx, itob(i))
 			<-h.postInt.sl[idx].c
 		}()
 		h.postInt.sl[idx].c <- 0
 	}
-	r := func() int { return btoi(c.read(pattern, tint, idx)) }
+	r := func() int { return btoi(c.read(pattern, Tint, idx)) }
 	return w, r
 }
 
@@ -131,11 +131,11 @@ func (c *client) Bool(pattern string, n int) (func(bool), func() bool) {
 	h.getBool.sl = append(h.getBool.sl, &getbool{c: make(chan bool, n)})
 	w := func(b bool) {
 		go func() {
-			c.write(pattern, tbool, idx, bool2bytes(b))
+			c.write(pattern, Tbool, idx, bool2bytes(b))
 			<-h.postBool.sl[idx].c
 		}()
 		h.postBool.sl[idx].c <- true
 	}
-	r := func() bool { return bytes2bool(c.read(pattern, tbool, idx)) }
+	r := func() bool { return bytes2bool(c.read(pattern, Tbool, idx)) }
 	return w, r
 }

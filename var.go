@@ -2,6 +2,6 @@ package rest
 
 var (
 	endpt  endpoint
-	v      = []byte(`▼`)
+	v      = []byte(V)
 	global *Handler
 )
