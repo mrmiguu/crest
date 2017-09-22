@@ -34,7 +34,7 @@ func (s *server) run(addr string) {
 
 		parts := bytes.Split(b, v)
 		if len(parts) != 4 {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			http.Error(w, "bad pattern-type-index-message format", http.StatusBadRequest)
 			return
 		}
 		pattern, t, idx, msg := string(parts[0]), parts[1][0], btoi(parts[2]), parts[3]
@@ -77,7 +77,7 @@ func (s *server) run(addr string) {
 
 		parts := bytes.Split(b, v)
 		if len(parts) != 3 {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			http.Error(w, "bad pattern-type-index format", http.StatusBadRequest)
 			return
 		}
 		pattern, t, idx := string(parts[0]), parts[1][0], btoi(parts[2])
