@@ -83,6 +83,9 @@ func (s *server) run(addr string) {
 				return
 			}
 			h.postBool.sl[idx].c <- bytes2bool(msg)
+
+		default:
+			http.Error(w, "type does not exist", http.StatusNotFound)
 		}
 	})
 
@@ -149,6 +152,9 @@ func (s *server) run(addr string) {
 			}
 			h.getBool.sl[idx].n <- 1
 			b = bool2bytes(<-h.getBool.sl[idx].c)
+
+		default:
+			http.Error(w, "type does not exist", http.StatusNotFound)
 		}
 
 		w.Write(b)
