@@ -9,6 +9,7 @@ func Connect(addr string) {
 	if online {
 		panic("already connected")
 	}
+	checkInstance()
 	endpt.Connect(addr)
 	online = true
 }
