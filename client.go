@@ -7,11 +7,17 @@ import (
 	"strings"
 )
 
-func newClient(addr string) endpoint {
+func newClient() endpoint {
+	return &client{h: safeh{m: map[string]*Handler{}}}
+}
+
+// TODO: add thread safety
+// TODO: add thread safety
+func (c *client) Connect(addr string) {
 	if i := strings.LastIndex(addr, "/"); i+1 == len(addr) {
 		addr = addr[:i]
 	}
-	return &client{h: safeh{m: map[string]*Handler{}}, addr: addr}
+	c.addr = addr
 }
 
 func (c *client) New(pattern string) *Handler {

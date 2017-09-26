@@ -6,10 +6,16 @@ import (
 	"net/http"
 )
 
-func newServer(addr string) endpoint {
+func newServer() endpoint {
 	s := &server{safeh{m: map[string]*Handler{}}}
-	go s.run(addr)
+	go s.run()
 	return s
+}
+
+// TODO: add thread safety
+// TODO: add thread safety
+func (s *server) Connect(addr string) {
+	go http.ListenAndServe(addr, nil)
 }
 
 func (s *server) New(pattern string) *Handler {
@@ -23,7 +29,7 @@ func (s *server) New(pattern string) *Handler {
 	return h
 }
 
-func (s *server) run(addr string) {
+func (s *server) run() {
 	http.HandleFunc(Write, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")
 		b, err := ioutil.ReadAll(r.Body)
@@ -159,8 +165,6 @@ func (s *server) run(addr string) {
 
 		w.Write(b)
 	})
-
-	http.ListenAndServe(addr, nil)
 }
 
 func (s *server) Bytes(pattern string, n int) (func([]byte), func() []byte) {

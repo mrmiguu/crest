@@ -1,53 +1,58 @@
 package rest
 
-import "github.com/gopherjs/gopherjs/js"
+import (
+	"github.com/gopherjs/gopherjs/js"
+)
 
 // Connect connects to an endpoint for channel creation/communication.
 func Connect(addr string) {
 	if endpt != nil {
 		panic("already connected")
 	}
+	endpt.Connect(addr)
+}
+
+// TODO: add thread safety
+// TODO: add thread safety
+func checkInstance() {
+	if endpt != nil {
+		return
+	}
 	if js.Global == nil {
-		endpt = newServer(addr)
+		endpt = newServer()
 	} else {
-		endpt = newClient(addr)
+		endpt = newClient()
 	}
 	global = New("")
 }
 
-func defaultConnect() {
-	if endpt == nil {
-		Connect("/")
-	}
-}
-
 // Bytes creates a byte slice REST channel.
 func Bytes(buf ...int) (func([]byte), func() []byte) {
-	defaultConnect()
+	checkInstance()
 	return global.Bytes(buf...)
 }
 
 // String creates a string REST channel.
 func String(buf ...int) (func(string), func() string) {
-	defaultConnect()
+	checkInstance()
 	return global.String(buf...)
 }
 
 // Int creates an int REST channel.
 func Int(buf ...int) (func(int), func() int) {
-	defaultConnect()
+	checkInstance()
 	return global.Int(buf...)
 }
 
 // Bool creates a bool REST channel.
 func Bool(buf ...int) (func(bool), func() bool) {
-	defaultConnect()
+	checkInstance()
 	return global.Bool(buf...)
 }
 
 // New creates a handler for REST channel building.
 func New(pattern string) *Handler {
-	defaultConnect()
+	checkInstance()
 	return endpt.New(pattern)
 }
 

@@ -3,6 +3,7 @@ package rest
 import "sync"
 
 type endpoint interface {
+	Connect(string)
 	New(string) *Handler
 	Bytes(string, int) (func([]byte), func() []byte)
 	String(string, int) (func(string), func() string)
