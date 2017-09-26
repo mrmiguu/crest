@@ -6,10 +6,11 @@ import (
 
 // Connect connects to an endpoint for channel creation/communication.
 func Connect(addr string) {
-	if endpt != nil {
+	if online {
 		panic("already connected")
 	}
 	endpt.Connect(addr)
+	online = true
 }
 
 // TODO: add thread safety
