@@ -11,13 +11,13 @@ func newClient() endpoint {
 	return &client{h: safeh{m: map[string]*Handler{}}}
 }
 
-// TODO: add thread safety
-// TODO: add thread safety
 func (c *client) Connect(addr string) {
 	if i := strings.LastIndex(addr, "/"); i+1 == len(addr) {
 		addr = addr[:i]
 	}
-	c.addr = addr
+	c.addr.Lock()
+	c.addr.String = addr
+	c.addr.Unlock()
 }
 
 func (c *client) New(pattern string) *Handler {
@@ -26,7 +26,7 @@ func (c *client) New(pattern string) *Handler {
 	if _, exists := c.h.m[pattern]; exists {
 		panic("pattern already exists")
 	}
-	h := &Handler{hptr: &c.h, pattern: pattern}
+	h := &Handler{hptr: &c.h, Pattern: pattern}
 	c.h.m[pattern] = h
 	return h
 }
@@ -37,7 +37,10 @@ func (c *client) write(pattern string, t byte, idx int, msg []byte) {
 	var err error
 	var resp *http.Response
 	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
-		resp, err = http.Post(c.addr+Write, "text/plain", bytes.NewReader(b))
+		c.addr.RLock()
+		addr := c.addr.String
+		c.addr.RUnlock()
+		resp, err = http.Post(addr+Write, "text/plain", bytes.NewReader(b))
 	}
 }
 
@@ -47,7 +50,10 @@ func (c *client) read(pattern string, t byte, idx int) []byte {
 	var err error
 	var resp *http.Response
 	for ok := true; ok; ok = (err != nil || resp.StatusCode > 299) {
-		resp, err = http.Post(c.addr+Read, "text/plain", bytes.NewReader(b))
+		c.addr.RLock()
+		addr := c.addr.String
+		c.addr.RUnlock()
+		resp, err = http.Post(addr+Read, "text/plain", bytes.NewReader(b))
 	}
 	b, err = ioutil.ReadAll(resp.Body)
 	must(err)

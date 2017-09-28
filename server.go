@@ -12,8 +12,6 @@ func newServer() endpoint {
 	return s
 }
 
-// TODO: add thread safety
-// TODO: add thread safety
 func (s *server) Connect(addr string) {
 	go http.ListenAndServe(addr, nil)
 }
@@ -24,7 +22,7 @@ func (s *server) New(pattern string) *Handler {
 	if _, exists := s.h.m[pattern]; exists {
 		panic("pattern already exists")
 	}
-	h := &Handler{hptr: &s.h, pattern: pattern}
+	h := &Handler{hptr: &s.h, Pattern: pattern}
 	s.h.m[pattern] = h
 	return h
 }

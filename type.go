@@ -16,8 +16,11 @@ type server struct {
 }
 
 type client struct {
-	addr string
-	h    safeh
+	addr struct {
+		sync.RWMutex
+		String string
+	}
+	h safeh
 }
 
 type safeh struct {

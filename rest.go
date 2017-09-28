@@ -62,7 +62,7 @@ func New(pattern string) *Handler {
 func (h *Handler) Close() error {
 	h.hptr.Lock()
 	defer h.hptr.Unlock()
-	delete(h.hptr.m, h.pattern)
+	delete(h.hptr.m, h.Pattern)
 	return nil
 }
 
@@ -75,7 +75,7 @@ func (h *Handler) Bytes(buf ...int) (func([]byte), func() []byte) {
 	if len(buf) > 0 {
 		n = buf[0]
 	}
-	return endpt.Bytes(h.pattern, n)
+	return endpt.Bytes(h.Pattern, n)
 }
 
 // String creates a string REST channel.
@@ -87,7 +87,7 @@ func (h *Handler) String(buf ...int) (func(string), func() string) {
 	if len(buf) > 0 {
 		n = buf[0]
 	}
-	return endpt.String(h.pattern, n)
+	return endpt.String(h.Pattern, n)
 }
 
 // Int creates an int REST channel.
@@ -99,7 +99,7 @@ func (h *Handler) Int(buf ...int) (func(int), func() int) {
 	if len(buf) > 0 {
 		n = buf[0]
 	}
-	return endpt.Int(h.pattern, n)
+	return endpt.Int(h.Pattern, n)
 }
 
 // Bool creates a bool REST channel.
@@ -111,5 +111,5 @@ func (h *Handler) Bool(buf ...int) (func(bool), func() bool) {
 	if len(buf) > 0 {
 		n = buf[0]
 	}
-	return endpt.Bool(h.pattern, n)
+	return endpt.Bool(h.Pattern, n)
 }
