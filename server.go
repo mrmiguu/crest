@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 func newServer() endpoint {
@@ -47,6 +48,7 @@ func (s *server) run() {
 		h, exists := s.h.m[pattern]
 		s.h.RUnlock()
 		if !exists {
+			time.Sleep(2500 * time.Millisecond)
 			http.Error(w, "pattern does not exist", http.StatusNotFound)
 			return
 		}
@@ -56,6 +58,7 @@ func (s *server) run() {
 			h.postBytes.RLock()
 			if idx > len(h.postBytes.sl)-1 {
 				h.postBytes.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -67,6 +70,7 @@ func (s *server) run() {
 			h.postString.RLock()
 			if idx > len(h.postString.sl)-1 {
 				h.postString.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -78,6 +82,7 @@ func (s *server) run() {
 			h.postInt.RLock()
 			if idx > len(h.postInt.sl)-1 {
 				h.postInt.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -89,6 +94,7 @@ func (s *server) run() {
 			h.postBool.RLock()
 			if idx > len(h.postBool.sl)-1 {
 				h.postBool.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -97,6 +103,7 @@ func (s *server) run() {
 			c.c <- bytes2bool(msg)
 
 		default:
+			time.Sleep(2500 * time.Millisecond)
 			http.Error(w, "type does not exist", http.StatusNotFound)
 		}
 	})
@@ -120,6 +127,7 @@ func (s *server) run() {
 		h, exists := s.h.m[pattern]
 		s.h.RUnlock()
 		if !exists {
+			time.Sleep(2500 * time.Millisecond)
 			http.Error(w, "pattern does not exist", http.StatusNotFound)
 			return
 		}
@@ -129,6 +137,7 @@ func (s *server) run() {
 			h.getBytes.RLock()
 			if idx > len(h.getBytes.sl)-1 {
 				h.getBytes.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -141,6 +150,7 @@ func (s *server) run() {
 			h.getString.RLock()
 			if idx > len(h.getString.sl)-1 {
 				h.getString.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -153,6 +163,7 @@ func (s *server) run() {
 			h.getInt.RLock()
 			if idx > len(h.getInt.sl)-1 {
 				h.getInt.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -165,6 +176,7 @@ func (s *server) run() {
 			h.getBool.RLock()
 			if idx > len(h.getBool.sl)-1 {
 				h.getBool.RUnlock()
+				time.Sleep(2500 * time.Millisecond)
 				http.Error(w, "index does not exist", http.StatusNotFound)
 				return
 			}
@@ -174,6 +186,7 @@ func (s *server) run() {
 			b = bool2bytes(<-c.c)
 
 		default:
+			time.Sleep(2500 * time.Millisecond)
 			http.Error(w, "type does not exist", http.StatusNotFound)
 		}
 
