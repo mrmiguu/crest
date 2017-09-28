@@ -27,8 +27,8 @@ type safeh struct {
 
 // Handler holds pattern-relative typed channels.
 type Handler struct {
+	Pattern             string
 	hptr                *safeh
-	pattern             string
 	getBytes, postBytes struct {
 		sync.RWMutex
 		sl []*getbytes
